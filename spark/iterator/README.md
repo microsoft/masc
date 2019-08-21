@@ -1,5 +1,7 @@
 
 # Package Installation
+
+```bash
 cd spark
 cd iterator
 
@@ -11,8 +13,11 @@ cp target/accumulo-spark-avro-1.0.0-SNAPSHOT.jar /home/eisber/fluo-uno/install/a
 # wait a bit... check with 'ps aux...' if there are left overs
 # ps aux | grep java
 ./bin/uno start accumulo
+```
 
 # Demo
+
+```bash
 createtable table1
 insert row1 cola colb value1
 insert row2 cold cole value2
@@ -25,3 +30,4 @@ compact
 scan
 du
 deleteiter -n dup -majc
+```
