@@ -18,6 +18,19 @@ import org.apache.accumulo.core.util.Pair;
 import org.apache.hadoop.io.Text;
 
 public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+	private static final String OPTION_COUNT = "count";
+	private static final String OPTION_DELIMITER = "delimiter";
+	// TODO
+	// proposed option & feature
+	// - check if delimiter exists in row key
+	// - try to parse duplication count after delimiter
+	// - if the number of digits matches the current number, skip row
+	//
+	// * pro: avoid unwanted execution
+	// * cons: can't distinguish between count 20 and 50, since it has the same
+	// number of digits
+	// private static final String OPTION_CHECK_DELIMITER = "check_delimiter";
+
 	private SortedKeyValueIterator<Key, Value> source;
 	private int targetDuplicationCount;
 	private String keyFormat;
@@ -34,8 +47,8 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 	public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
 			throws IOException {
 		this.source = source;
-		this.targetDuplicationCount = Integer.parseInt(options.getOrDefault("count", "1"));
-		this.delimiter = options.getOrDefault("delimiter", "_");
+		this.targetDuplicationCount = Integer.parseInt(options.getOrDefault(OPTION_COUNT, "1"));
+		this.delimiter = options.getOrDefault(OPTION_DELIMITER, "_");
 
 		int digits = (int) (Math.log10(targetDuplicationCount) + 1);
 		this.keyFormat = "%s%s%0" + digits + "d";
@@ -149,8 +162,8 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 	@Override
 	public IteratorOptions describeOptions() {
 		HashMap<String, String> namedOptions = new HashMap<>();
-		namedOptions.put("count", "Number of duplicates rows to produce");
-		namedOptions.put("delimiter", "Delimiter to use between row key and duplication index");
+		namedOptions.put(OPTION_COUNT, "Number of duplicates rows to produce");
+		namedOptions.put(OPTION_DELIMITER, "Delimiter to use between row key and duplication index");
 
 		return new IteratorOptions(getClass().getSimpleName(),
 				"Duplicates values by appending an index to each row key", namedOptions, null);
@@ -158,7 +171,7 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 
 	@Override
 	public boolean validateOptions(Map<String, String> options) {
-		String count = options.get("count");
+		String count = options.get(OPTION_COUNT);
 		if (count != null) {
 			try {
 				Integer.parseInt(count);
