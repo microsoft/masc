@@ -11,5 +11,5 @@ steps:
     publishJUnitResults: true
     testResultsFiles: '**/TEST-*.xml'
     goals: 'package'
-    mavenOptions: -B
+    mavenOptions: '-B'
   displayName: 'Accumulo Iterator'
