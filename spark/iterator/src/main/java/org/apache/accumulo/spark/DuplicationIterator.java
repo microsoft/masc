@@ -25,6 +25,7 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 	private Key topKey;
 	private Value topValue;
 	private int currentDuplicationIndex;
+	private String delimiter;
 
 	private Iterator<Pair<Key, Value>> keysIterator;
 	private ArrayList<Pair<Key, Value>> keys = new ArrayList<>();
@@ -34,9 +35,10 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 			throws IOException {
 		this.source = source;
 		this.targetDuplicationCount = Integer.parseInt(options.getOrDefault("count", "1"));
+		this.delimiter = options.getOrDefault("delimiter", "_");
 
 		int digits = (int) (Math.log10(targetDuplicationCount) + 1);
-		this.keyFormat = "%s%0" + digits + "d";
+		this.keyFormat = "%s%s%0" + digits + "d";
 	}
 
 	@Override
@@ -117,7 +119,7 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 		// form new key by appending currentDuplicationIndex
 		String row = top.getFirst().getRow().toString();
 
-		this.topKey = new Key(new Text(String.format(keyFormat, row, currentDuplicationIndex)),
+		this.topKey = new Key(new Text(String.format(keyFormat, row, delimiter, currentDuplicationIndex)),
 				top.getFirst().getColumnFamily(), top.getFirst().getColumnQualifier());
 		this.topValue = top.getSecond();
 	}
@@ -148,6 +150,7 @@ public class DuplicationIterator implements SortedKeyValueIterator<Key, Value>, 
 	public IteratorOptions describeOptions() {
 		HashMap<String, String> namedOptions = new HashMap<>();
 		namedOptions.put("count", "Number of duplicates rows to produce");
+		namedOptions.put("delimiter", "Delimiter to use between row key and duplication index");
 
 		return new IteratorOptions(getClass().getSimpleName(),
 				"Duplicates values by appending an index to each row key", namedOptions, null);

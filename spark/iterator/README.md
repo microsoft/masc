@@ -6,7 +6,7 @@ cd spark
 cd iterator
 
 mvn package
-cp target/accumulo-spark-avro-1.0.0-SNAPSHOT.jar /home/eisber/fluo-uno/install/accumulo-2.0.0/lib/accumulo-spark-avro-1.0.0-SNAPSHOT.jar
+cp target/accumulo-spark-avro-1.0.0-SNAPSHOT.jar $ACCUMULO_HOME/lib/accumulo-spark-avro-1.0.0-SNAPSHOT.jar
 
 ./bin/uno stop accumulo
 
@@ -23,6 +23,7 @@ insert row1 cola colb value1
 insert row2 cold cole value2
 scan
 setiter -n dup -class org.apache.accumulo.spark.DuplicationIterator -t table1 -p 10 -majc
+_
 15
 scan
 du
