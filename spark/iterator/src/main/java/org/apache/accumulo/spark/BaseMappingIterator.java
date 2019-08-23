@@ -15,6 +15,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.spark.decoder.BooleanStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.DoubleStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.FloatStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.IntegerStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.LongStringEncodedValueDecoder;
 import org.apache.accumulo.spark.decoder.StringValueDecoder;
 import org.apache.accumulo.spark.decoder.ValueDecoder;
 import org.apache.hadoop.io.Text;
@@ -41,12 +46,25 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
   protected abstract byte[] endRow() throws IOException;
 
   protected ValueDecoder getDecoder(String type) {
+    // TODO: since the value decoders are stateless move to singletons
     if (type.equalsIgnoreCase("string"))
       return new StringValueDecoder();
 
-    // TODO: additional types
-    // string the encoding topic (utf8)
-    // string encoded numbers (e.g. "123")
+    // string encoded numbers
+    if (type.equalsIgnoreCase("integer"))
+      return new IntegerStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("long"))
+      return new LongStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("float"))
+      return new FloatStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("double"))
+      return new DoubleStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("boolean"))
+      return new BooleanStringEncodedValueDecoder();
 
     throw new IllegalArgumentException("Unsupported type: '" + type + "'");
   }

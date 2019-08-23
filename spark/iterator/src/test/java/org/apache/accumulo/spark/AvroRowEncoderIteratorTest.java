@@ -125,5 +125,4 @@ public class AvroRowEncoderIteratorTest {
 
 		validateSingleRowSimpleSchema(map, new MyRow("key1", "xxx"), new MyRow("key3", "yyy"));
 	}
-
 }
