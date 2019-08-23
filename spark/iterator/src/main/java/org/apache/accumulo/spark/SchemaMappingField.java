@@ -36,7 +36,7 @@ public class SchemaMappingField {
   /**
    * @param columnQualifier the columnQualifier to set
    */
-  @JsonSetter(value = "cf")
+  @JsonSetter(value = "cq")
   public void setColumnQualifier(String columnQualifier) {
     this.columnQualifier = columnQualifier;
   }

@@ -22,7 +22,7 @@ import org.apache.hadoop.io.Text;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
-  private static final String SCHEMA = "schema";
+  public static final String SCHEMA = "schema";
 
   // Column Family -> Column Qualifier -> Namespace
   // Using this order as the cells are sorted by family, qualifier
@@ -75,18 +75,17 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
         }
 
         // skip if no mapping found
-        if (currentQualifierMapping == null)
-          continue;
+        if (currentQualifierMapping != null) {
 
-        ValueDecoder featurizer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
-        if (featurizer == null)
-          continue;
+          ValueDecoder featurizer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
+          if (featurizer != null) {
+            foundFeature = true;
 
-        foundFeature = true;
+            Value value = sourceIter.getTopValue();
 
-        Value value = sourceIter.getTopValue();
-
-        processCell(sourceTopKey, value, featurizer.decode(value));
+            processCell(sourceTopKey, value, featurizer.decode(value));
+          }
+        }
 
         sourceIter.next();
       }
