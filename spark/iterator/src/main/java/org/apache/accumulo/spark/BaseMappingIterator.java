@@ -29,14 +29,14 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
   private HashMap<ByteSequence, HashMap<ByteSequence, ValueDecoder>> cellToColumnMap;
 
   protected SortedKeyValueIterator<Key, Value> sourceIter;
-  protected SchemaMapping schemaMapping;
+  protected SchemaMappingField[] schemaMappingFields;
 
   private Key topKey = null;
   private Value topValue = null;
 
   protected abstract void startRow(Text rowKey) throws IOException;
 
-  protected abstract void processCell(Key key, Value value, String column, Object decodedValue) throws IOException;
+  protected abstract void processCell(Key key, Value value, Object decodedValue) throws IOException;
 
   protected abstract byte[] endRow() throws IOException;
 
@@ -86,7 +86,7 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
 
         Value value = sourceIter.getTopValue();
 
-        processCell(sourceTopKey, value, featurizer.column, featurizer.decode(value));
+        processCell(sourceTopKey, value, featurizer.decode(value));
 
         sourceIter.next();
       }
@@ -182,14 +182,11 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
     sourceIter = source;
 
     ObjectMapper objectMapper = new ObjectMapper();
-    schemaMapping = objectMapper.readValue(options.get(SCHEMA), SchemaMapping.class);
+    schemaMappingFields = objectMapper.readValue(options.get(SCHEMA), SchemaMappingField[].class);
 
-    // TODO: handle rowKey special... don't duplicate
     cellToColumnMap = new HashMap<>();
-    for (Map.Entry<String, SchemaMappingField> entry : schemaMapping.getMapping().entrySet()) {
-      SchemaMappingField field = entry.getValue();
-
-      ByteSequence columnFamily = new ArrayByteSequence(field.getColumnFamily());
+    for (SchemaMappingField schemaMappingField : schemaMappingFields) {
+      ByteSequence columnFamily = new ArrayByteSequence(schemaMappingField.getColumnFamily());
       HashMap<ByteSequence, ValueDecoder> qualifierMap = cellToColumnMap.get(columnFamily);
 
       if (qualifierMap == null) {
@@ -197,13 +194,10 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
         cellToColumnMap.put(columnFamily, qualifierMap);
       }
 
-      ByteSequence columnQualifier = new ArrayByteSequence(field.getColumnQualifier());
+      ByteSequence columnQualifier = new ArrayByteSequence(schemaMappingField.getColumnQualifier());
 
       // find the decoder for the respective type
-      ValueDecoder valueDecoder = getDecoder(field.getType());
-
-      // store the target column name there.
-      valueDecoder.column = entry.getKey();
+      ValueDecoder valueDecoder = getDecoder(schemaMappingField.getType());
 
       qualifierMap.put(columnQualifier, valueDecoder);
     }

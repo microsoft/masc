@@ -1,14 +1,18 @@
 package org.apache.accumulo.spark;
 
+import com.fasterxml.jackson.annotation.JsonSetter;
+import com.fasterxml.jackson.annotation.JsonGetter;
+
 public class SchemaMappingField {
+
   private String columnFamily;
   private String columnQualifier;
   private String type;
 
   /**
-   * @param columnFamily
-   *          the columnFamily to set
+   * @param columnFamily the columnFamily to set
    */
+  @JsonSetter(value = "cf")
   public void setColumnFamily(String columnFamily) {
     this.columnFamily = columnFamily;
   }
@@ -16,6 +20,7 @@ public class SchemaMappingField {
   /**
    * @return the columnFamily
    */
+  @JsonGetter(value = "cf")
   public String getColumnFamily() {
     return columnFamily;
   }
@@ -23,14 +28,15 @@ public class SchemaMappingField {
   /**
    * @return the columnQualifier
    */
+  @JsonGetter(value = "cq")
   public String getColumnQualifier() {
     return columnQualifier;
   }
 
   /**
-   * @param columnQualifier
-   *          the columnQualifier to set
+   * @param columnQualifier the columnQualifier to set
    */
+  @JsonSetter(value = "cf")
   public void setColumnQualifier(String columnQualifier) {
     this.columnQualifier = columnQualifier;
   }
@@ -38,14 +44,15 @@ public class SchemaMappingField {
   /**
    * @return the type
    */
+  @JsonGetter(value = "t")
   public String getType() {
     return type;
   }
 
   /**
-   * @param type
-   *          the type to set
+   * @param type the type to set
    */
+  @JsonSetter(value = "t")
   public void setType(String type) {
     this.type = type;
   }
