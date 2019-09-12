@@ -8,6 +8,9 @@ cd iterator
 mvn package
 cp target/accumulo-spark-avro-1.0.0-SNAPSHOT.jar $ACCUMULO_HOME/lib/accumulo-spark-avro-1.0.0-SNAPSHOT.jar
 
+# this is required when using with spark/datasource v2 connector
+cp ~/.m2/repository/org/apache/avro/avro/1.9.0/avro-1.9.0.jar $ACCUMULO_HOME/lib/
+
 ./bin/uno stop accumulo
 
 # wait a bit... check with 'ps aux...' if there are left overs

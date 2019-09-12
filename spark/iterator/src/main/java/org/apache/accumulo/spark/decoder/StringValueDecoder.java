@@ -4,7 +4,7 @@ import java.nio.charset.StandardCharsets;
 
 import org.apache.accumulo.core.data.Value;
 
-public class StringValueDecoder extends ValueDecoder {
+public final class StringValueDecoder implements ValueDecoder {
   @Override
   public Object decode(Value value) {
     // a) not happy about the allocation... can't we directly move the bytes into

@@ -15,6 +15,11 @@ import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.IteratorEnvironment;
 import org.apache.accumulo.core.iterators.OptionDescriber;
 import org.apache.accumulo.core.iterators.SortedKeyValueIterator;
+import org.apache.accumulo.spark.decoder.BooleanStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.DoubleStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.FloatStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.IntegerStringEncodedValueDecoder;
+import org.apache.accumulo.spark.decoder.LongStringEncodedValueDecoder;
 import org.apache.accumulo.spark.decoder.StringValueDecoder;
 import org.apache.accumulo.spark.decoder.ValueDecoder;
 import org.apache.hadoop.io.Text;
@@ -22,31 +27,44 @@ import org.apache.hadoop.io.Text;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
-  private static final String SCHEMA = "schema";
+  public static final String SCHEMA = "schema";
 
   // Column Family -> Column Qualifier -> Namespace
   // Using this order as the cells are sorted by family, qualifier
   private HashMap<ByteSequence, HashMap<ByteSequence, ValueDecoder>> cellToColumnMap;
 
   protected SortedKeyValueIterator<Key, Value> sourceIter;
-  protected SchemaMapping schemaMapping;
+  protected SchemaMappingField[] schemaMappingFields;
 
   private Key topKey = null;
   private Value topValue = null;
 
   protected abstract void startRow(Text rowKey) throws IOException;
 
-  protected abstract void processCell(Key key, Value value, String column, Object decodedValue) throws IOException;
+  protected abstract void processCell(Key key, Value value, Object decodedValue) throws IOException;
 
   protected abstract byte[] endRow() throws IOException;
 
   protected ValueDecoder getDecoder(String type) {
+    // TODO: since the value decoders are stateless move to singletons
     if (type.equalsIgnoreCase("string"))
       return new StringValueDecoder();
 
-    // TODO: additional types
-    // string the encoding topic (utf8)
-    // string encoded numbers (e.g. "123")
+    // string encoded numbers
+    if (type.equalsIgnoreCase("integer"))
+      return new IntegerStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("long"))
+      return new LongStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("float"))
+      return new FloatStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("double"))
+      return new DoubleStringEncodedValueDecoder();
+
+    if (type.equalsIgnoreCase("boolean"))
+      return new BooleanStringEncodedValueDecoder();
 
     throw new IllegalArgumentException("Unsupported type: '" + type + "'");
   }
@@ -75,18 +93,17 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
         }
 
         // skip if no mapping found
-        if (currentQualifierMapping == null)
-          continue;
+        if (currentQualifierMapping != null) {
 
-        ValueDecoder featurizer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
-        if (featurizer == null)
-          continue;
+          ValueDecoder featurizer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
+          if (featurizer != null) {
+            foundFeature = true;
 
-        foundFeature = true;
+            Value value = sourceIter.getTopValue();
 
-        Value value = sourceIter.getTopValue();
-
-        processCell(sourceTopKey, value, featurizer.column, featurizer.decode(value));
+            processCell(sourceTopKey, value, featurizer.decode(value));
+          }
+        }
 
         sourceIter.next();
       }
@@ -182,14 +199,11 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
     sourceIter = source;
 
     ObjectMapper objectMapper = new ObjectMapper();
-    schemaMapping = objectMapper.readValue(options.get(SCHEMA), SchemaMapping.class);
+    schemaMappingFields = objectMapper.readValue(options.get(SCHEMA), SchemaMappingField[].class);
 
-    // TODO: handle rowKey special... don't duplicate
     cellToColumnMap = new HashMap<>();
-    for (Map.Entry<String, SchemaMappingField> entry : schemaMapping.getMapping().entrySet()) {
-      SchemaMappingField field = entry.getValue();
-
-      ByteSequence columnFamily = new ArrayByteSequence(field.getColumnFamily());
+    for (SchemaMappingField schemaMappingField : schemaMappingFields) {
+      ByteSequence columnFamily = new ArrayByteSequence(schemaMappingField.getColumnFamily());
       HashMap<ByteSequence, ValueDecoder> qualifierMap = cellToColumnMap.get(columnFamily);
 
       if (qualifierMap == null) {
@@ -197,13 +211,10 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
         cellToColumnMap.put(columnFamily, qualifierMap);
       }
 
-      ByteSequence columnQualifier = new ArrayByteSequence(field.getColumnQualifier());
+      ByteSequence columnQualifier = new ArrayByteSequence(schemaMappingField.getColumnQualifier());
 
       // find the decoder for the respective type
-      ValueDecoder valueDecoder = getDecoder(field.getType());
-
-      // store the target column name there.
-      valueDecoder.column = entry.getKey();
+      ValueDecoder valueDecoder = getDecoder(schemaMappingField.getType());
 
       qualifierMap.put(columnQualifier, valueDecoder);
     }
