@@ -101,7 +101,7 @@ public class AvroRowEncoderIterator extends BaseMappingIterator {
     // passing columnFamilyText to re-use memory
     EnhancedGenericRecordBuilder builder = columnFamilyRecordBuilder.get(key.getColumnFamily(columnFamilyText));
 
-    // passing columnQualifierText to re-use memroy
+    // passing columnQualifierText to re-use memory
     builder.set(key.getColumnQualifier(columnQualifierText), decodedValue);
   }
 
@@ -111,51 +111,24 @@ public class AvroRowEncoderIterator extends BaseMappingIterator {
     for (EnhancedGenericRecordBuilder nestedRecordBuilder : columnFamilyRecordBuilder.values())
       rootRecordBuilder.set(nestedRecordBuilder.parentField, nestedRecordBuilder.build());
 
-    writer.write(rootRecordBuilder.build(), encoder);
+    Record record = rootRecordBuilder.build();
+
+    // TODO: evaluate expression against
+    // https://avro.apache.org/docs/1.7.6/api/java/org/apache/avro/generic/GenericData.Record.html
+    // EqualOp eo;
+    /*
+     * eo.matches(record) {
+     * 
+     * Record familyRecord = (Record)record.get(familyIndex); familyRecord
+     * 
+     * }
+     */
+
+    writer.write(record, encoder);
     encoder.flush();
     binaryBuffer.flush();
 
     return binaryBuffer.toByteArray();
-  }
-
-  private SchemaBuilder.FieldAssembler<Schema> addColumnQualifierFields(SchemaBuilder.FieldAssembler<Schema> builder,
-      List<SchemaMappingField> fields) {
-    for (SchemaMappingField schemaMappingField : fields) {
-      switch (schemaMappingField.getType().toUpperCase()) {
-      case "STRING":
-        builder = builder.optionalString(schemaMappingField.getColumnQualifier());
-        break;
-
-      case "LONG":
-        builder = builder.optionalLong(schemaMappingField.getColumnQualifier());
-        break;
-
-      case "INTEGER":
-        builder = builder.optionalInt(schemaMappingField.getColumnQualifier());
-        break;
-
-      case "DOUBLE":
-        builder = builder.optionalDouble(schemaMappingField.getColumnQualifier());
-        break;
-
-      case "FLOAT":
-        builder = builder.optionalFloat(schemaMappingField.getColumnQualifier());
-        break;
-
-      case "BOOLEAN":
-        builder = builder.optionalBoolean(schemaMappingField.getColumnQualifier());
-        break;
-
-      case "BYTES":
-        builder = builder.optionalBytes(schemaMappingField.getColumnQualifier());
-        break;
-
-      default:
-        throw new IllegalArgumentException("Unsupported type '" + schemaMappingField.getType() + "'");
-      }
-    }
-
-    return builder;
   }
 
   @Override
@@ -164,27 +137,8 @@ public class AvroRowEncoderIterator extends BaseMappingIterator {
 
     super.init(source, options, env);
 
-    // construct schema
-    // List<Schema.Field> fields = new ArrayList<>();
-    SchemaBuilder.FieldAssembler<Schema> rootAssembler = SchemaBuilder.record("root").fields();
+    schema = AvroUtil.buildSchema(schemaMappingFields);
 
-    // group fields by column family
-    Map<String, List<SchemaMappingField>> groupedByColumnFamily = Stream.of(schemaMappingFields)
-        .collect(Collectors.groupingBy(SchemaMappingField::getColumnFamily));
-
-    // loop over column families
-    for (Map.Entry<String, List<SchemaMappingField>> entry : groupedByColumnFamily.entrySet()) {
-
-      // loop over column qualifiers
-      SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = SchemaBuilder.record(entry.getKey()).fields();
-      columnFieldsAssembler = addColumnQualifierFields(columnFieldsAssembler, entry.getValue());
-
-      // add nested type to to root assembler
-      rootAssembler = rootAssembler.name(entry.getKey()).type(columnFieldsAssembler.endRecord()).noDefault();
-    }
-
-    // setup serialization
-    schema = rootAssembler.endRecord();
     writer = new SpecificDatumWriter<>(schema);
     encoder = EncoderFactory.get().binaryEncoder(binaryBuffer, null);
 
