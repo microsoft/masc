@@ -9,44 +9,33 @@ import org.apache.avro.Schema;
 import org.apache.avro.SchemaBuilder;
 
 public class AvroUtil {
-	private static SchemaBuilder.FieldAssembler<Schema> addColumnQualifierFields(
-			SchemaBuilder.FieldAssembler<Schema> builder, List<SchemaMappingField> fields) {
-		for (SchemaMappingField schemaMappingField : fields) {
-			switch (schemaMappingField.getType().toUpperCase()) {
-			case "STRING":
-				builder = builder.optionalString(schemaMappingField.getColumnQualifier());
-				break;
+	private static SchemaBuilder.FieldAssembler<Schema> addAvroField(SchemaBuilder.FieldAssembler<Schema> builder,
+			String type, String name) {
+		switch (type.toUpperCase()) {
+		case "STRING":
+			return builder.optionalString(name);
 
-			case "LONG":
-				builder = builder.optionalLong(schemaMappingField.getColumnQualifier());
-				break;
+		case "LONG":
+			return builder.optionalLong(name);
 
-			case "INTEGER":
-				builder = builder.optionalInt(schemaMappingField.getColumnQualifier());
-				break;
+		case "INTEGER":
+			return builder.optionalInt(name);
 
-			case "DOUBLE":
-				builder = builder.optionalDouble(schemaMappingField.getColumnQualifier());
-				break;
+		case "DOUBLE":
+			return builder.optionalDouble(name);
 
-			case "FLOAT":
-				builder = builder.optionalFloat(schemaMappingField.getColumnQualifier());
-				break;
+		case "FLOAT":
+			return builder.optionalFloat(name);
 
-			case "BOOLEAN":
-				builder = builder.optionalBoolean(schemaMappingField.getColumnQualifier());
-				break;
+		case "BOOLEAN":
+			return builder.optionalBoolean(name);
 
-			case "BYTES":
-				builder = builder.optionalBytes(schemaMappingField.getColumnQualifier());
-				break;
+		case "BYTES":
+			return builder.optionalBytes(name);
 
-			default:
-				throw new IllegalArgumentException("Unsupported type '" + schemaMappingField.getType() + "'");
-			}
+		default:
+			throw new IllegalArgumentException("Unsupported type '" + type + "'");
 		}
-
-		return builder;
 	}
 
 	public static Schema buildSchema(SchemaMappingField[] schemaMappingFields) {
@@ -61,12 +50,23 @@ public class AvroUtil {
 		// loop over column families
 		for (Map.Entry<String, List<SchemaMappingField>> entry : groupedByColumnFamily.entrySet()) {
 
-			// loop over column qualifiers
-			SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = SchemaBuilder.record(entry.getKey()).fields();
-			columnFieldsAssembler = addColumnQualifierFields(columnFieldsAssembler, entry.getValue());
+			List<SchemaMappingField> schemaMappingFieldsPerFamily = entry.getValue();
+			SchemaMappingField firstField = schemaMappingFieldsPerFamily.get(0);
 
-			// add nested type to to root assembler
-			rootAssembler = rootAssembler.name(entry.getKey()).type(columnFieldsAssembler.endRecord()).noDefault();
+			if (schemaMappingFieldsPerFamily.size() > 1 || firstField.getColumnQualifier() != null) {
+				// loop over column qualifiers
+				SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = SchemaBuilder.record(entry.getKey())
+						.fields();
+				for (SchemaMappingField schemaMappingField : schemaMappingFieldsPerFamily)
+					columnFieldsAssembler = addAvroField(columnFieldsAssembler, schemaMappingField.getType(),
+							schemaMappingField.getColumnQualifier());
+
+				// add nested type to to root assembler
+				rootAssembler = rootAssembler.name(entry.getKey()).type(columnFieldsAssembler.endRecord()).noDefault();
+			} else {
+
+				rootAssembler = addAvroField(rootAssembler, firstField.getType(), firstField.getColumnFamily());
+			}
 		}
 
 		// setup serialization

@@ -5,16 +5,10 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import javax.el.*;
-import de.odysseus.el.util.SimpleContext;
 import junit.framework.TestCase;
-
-import java.beans.FeatureDescriptor;
-import java.util.Arrays;
-import java.util.Iterator;
 
 import org.apache.accumulo.spark.el.AvroContext;
 import org.apache.avro.Schema;
-import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.GenericRecordBuilder;
 import org.junit.Test;
 
