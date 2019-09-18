@@ -33,7 +33,6 @@ public class ExpressionTest extends TestCase {
 	}
 
 	private void setRecordValues(long cq1, double cq2, String cq3) {
-
 		GenericRecordBuilder cf1RecordBuilder = new GenericRecordBuilder(schema.getField("cf1").schema());
 		GenericRecordBuilder cf2RecordBuilder = new GenericRecordBuilder(schema.getField("cf2").schema());
 
@@ -50,7 +49,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testVariableExpressions() {
-
 		ValueExpression exprV0 = factory.createValueExpression(context, "${v0}", long.class);
 
 		// set the values after the expression is created
@@ -68,7 +66,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testVariableConditions() {
-
 		ValueExpression expr = factory.createValueExpression(context, "${v0 > 2.1 && v1 < 3}", boolean.class);
 
 		setRecordValues(3L, 2.0, "");
@@ -78,7 +75,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testStringEndsWith() {
-
 		ValueExpression expr = factory.createValueExpression(context, "${v2.endsWith('test')}", boolean.class);
 		setRecordValues(3L, 2.0, "This is a test");
 		assertTrue((boolean) expr.getValue(context));
@@ -89,7 +85,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testStringStartsWith() {
-
 		ValueExpression expr = factory.createValueExpression(context, "${v2.startsWith('This')}", boolean.class);
 		setRecordValues(3L, 2.0, "This is a test");
 		assertTrue((boolean) expr.getValue(context));
@@ -100,7 +95,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testStringContains() {
-
 		ValueExpression expr = factory.createValueExpression(context, "${v2.contains('is')}", boolean.class);
 		setRecordValues(3L, 2.0, "This is a test");
 		assertTrue((boolean) expr.getValue(context));
@@ -111,7 +105,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testStringIn() {
-
 		ValueExpression expr = factory.createValueExpression(context, "${v2.in('a','b','c')}", boolean.class);
 		setRecordValues(3L, 2.0, "b");
 		assertTrue((boolean) expr.getValue(context));
@@ -119,7 +112,6 @@ public class ExpressionTest extends TestCase {
 
 	@Test
 	public void testIntIn() {
-
 		ValueExpression expr = factory.createValueExpression(context, "${v0.in(0, 1, 3)}", boolean.class);
 		setRecordValues(3L, 2.0, "b");
 		assertTrue((boolean) expr.getValue(context));
@@ -127,5 +119,26 @@ public class ExpressionTest extends TestCase {
 		expr = factory.createValueExpression(context, "${v0.in(0, 1)}", boolean.class);
 		setRecordValues(3L, 2.0, "b");
 		assertFalse((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringQuoteEscape() {
+		ValueExpression expr = factory.createValueExpression(context, "${v2 == 'a\\'bc'}", boolean.class);
+		setRecordValues(3L, 2.0, "a'bc");
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringDoubleQuoteEscape() {
+		ValueExpression expr = factory.createValueExpression(context, "${v2 == 'a\"bc'}", boolean.class);
+		setRecordValues(3L, 2.0, "a\"bc");
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringBackslash() {
+		ValueExpression expr = factory.createValueExpression(context, "${v2 == 'a\\\\bc'}", boolean.class);
+		setRecordValues(3L, 2.0, "a\\bc");
+		assertTrue((boolean) expr.getValue(context));
 	}
 }
