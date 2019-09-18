@@ -70,48 +70,58 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
   }
 
   private void encodeRow() throws IOException {
+    byte[] rowValue = null;
     Text currentRow;
-    boolean foundFeature = false;
+
     do {
-      if (!sourceIter.hasTop())
-        return;
-      currentRow = new Text(sourceIter.getTopKey().getRow());
+      boolean foundFeature = false;
+      do {
+        // no more input row?
+        if (!sourceIter.hasTop())
+          return;
 
-      ByteSequence currentFamily = null;
-      Map<ByteSequence, ValueDecoder> currentQualifierMapping = null;
+        currentRow = new Text(sourceIter.getTopKey().getRow());
 
-      // dispatch
-      startRow(currentRow);
+        ByteSequence currentFamily = null;
+        Map<ByteSequence, ValueDecoder> currentQualifierMapping = null;
 
-      while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
-        Key sourceTopKey = sourceIter.getTopKey();
+        // dispatch
+        startRow(currentRow);
 
-        // different column family?
-        if (currentFamily == null || !sourceTopKey.getColumnFamilyData().equals(currentFamily)) {
-          currentFamily = sourceTopKey.getColumnFamilyData();
-          currentQualifierMapping = cellToColumnMap.get(currentFamily);
-        }
+        while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
+          Key sourceTopKey = sourceIter.getTopKey();
 
-        // skip if no mapping found
-        if (currentQualifierMapping != null) {
-
-          ValueDecoder featurizer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
-          if (featurizer != null) {
-            foundFeature = true;
-
-            Value value = sourceIter.getTopValue();
-
-            processCell(sourceTopKey, value, featurizer.decode(value));
+          // different column family?
+          if (currentFamily == null || !sourceTopKey.getColumnFamilyData().equals(currentFamily)) {
+            currentFamily = sourceTopKey.getColumnFamilyData();
+            currentQualifierMapping = cellToColumnMap.get(currentFamily);
           }
-        }
 
-        sourceIter.next();
-      }
-    } while (!foundFeature); // skip rows until we found a single feature
+          // skip if no mapping found
+          if (currentQualifierMapping != null) {
+
+            ValueDecoder featurizer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
+            if (featurizer != null) {
+              foundFeature = true;
+
+              Value value = sourceIter.getTopValue();
+
+              processCell(sourceTopKey, value, featurizer.decode(value));
+            }
+          }
+
+          sourceIter.next();
+        }
+      } while (!foundFeature); // skip rows until we found a single feature
+
+      // produce final row
+      rowValue = endRow();
+      // skip if null
+    } while (rowValue == null);
 
     // null doesn't seem to be allowed for cf/cq...
     topKey = new Key(currentRow, new Text("a"), new Text("b"));
-    topValue = new Value(endRow());
+    topValue = new Value(rowValue);
   }
 
   @Override
@@ -211,12 +221,14 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
         cellToColumnMap.put(columnFamily, qualifierMap);
       }
 
-      ByteSequence columnQualifier = new ArrayByteSequence(schemaMappingField.getColumnQualifier());
-
       // find the decoder for the respective type
       ValueDecoder valueDecoder = getDecoder(schemaMappingField.getType());
 
-      qualifierMap.put(columnQualifier, valueDecoder);
+      String columnQualifier = schemaMappingField.getColumnQualifier();
+      ByteSequence columnQualifierByteArraySequence = columnQualifier != null ? new ArrayByteSequence(columnQualifier)
+          : new ArrayByteSequence(new byte[0]);
+
+      qualifierMap.put(columnQualifierByteArraySequence, valueDecoder);
     }
   }
 }

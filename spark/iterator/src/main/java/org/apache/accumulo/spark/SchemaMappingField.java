@@ -8,6 +8,59 @@ public class SchemaMappingField {
   private String columnFamily;
   private String columnQualifier;
   private String type;
+  private String filterVariableName;
+
+  public SchemaMappingField() {
+  }
+
+  public SchemaMappingField(String columnFamily, String columnQualifier, String type, String filterVariableName) {
+    this.columnFamily = columnFamily;
+    this.columnQualifier = columnQualifier;
+    this.type = type;
+    this.filterVariableName = filterVariableName;
+  }
+
+  public Class<?> getJavaType() {
+    switch (getType().toUpperCase()) {
+    case "STRING":
+      return String.class;
+
+    case "LONG":
+      return long.class;
+
+    case "INTEGER":
+      return int.class;
+
+    case "DOUBLE":
+      return double.class;
+
+    case "FLOAT":
+      return float.class;
+
+    case "BOOLEAN":
+      return boolean.class;
+
+    // case "BYTES":
+    default:
+      return null;
+    }
+  }
+
+  /**
+   * @param filterVariableName the filterVariableName to set
+   */
+  @JsonSetter(value = "fvn")
+  public void setFilterVariableName(String filterVariableName) {
+    this.filterVariableName = filterVariableName;
+  }
+
+  /**
+   * @return the filterVariableName
+   */
+  @JsonGetter(value = "fvn")
+  public String getFilterVariableName() {
+    return filterVariableName;
+  }
 
   /**
    * @param columnFamily the columnFamily to set

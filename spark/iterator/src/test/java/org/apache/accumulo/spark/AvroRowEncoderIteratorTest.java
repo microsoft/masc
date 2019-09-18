@@ -1,4 +1,3 @@
-
 package org.apache.accumulo.spark;
 
 import static org.junit.Assert.assertEquals;
@@ -27,16 +26,6 @@ import org.apache.avro.specific.SpecificDatumReader;
 import org.junit.Test;
 
 public class AvroRowEncoderIteratorTest {
-
-	private static final Collection<ByteSequence> EMPTY_SET = new HashSet<>();
-
-	private GenericRecord deserialize(byte[] data, Schema schema) throws IOException {
-		SpecificDatumReader<GenericRecord> reader = new SpecificDatumReader<GenericRecord>(schema);
-		BinaryDecoder decoder = DecoderFactory.get().binaryDecoder(data, null);
-
-		return reader.read(null, decoder);
-	}
-
 	class MyRow {
 		public String key;
 
@@ -58,7 +47,7 @@ public class AvroRowEncoderIteratorTest {
 		options.put(AvroRowEncoderIterator.SCHEMA, "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"STRING\"}]");
 
 		iterator.init(parentIterator, options, new DefaultIteratorEnvironment());
-		iterator.seek(new Range(), EMPTY_SET, false);
+		iterator.seek(new Range(), AvroTestUtil.EMPTY_SET, false);
 
 		// the expected avro schema
 		Schema schema = SchemaBuilder.record("root").fields().name("cf1")
@@ -73,7 +62,7 @@ public class AvroRowEncoderIteratorTest {
 			// validate value
 			byte[] data = iterator.getTopValue().get();
 
-			GenericRecord record = deserialize(data, schema);
+			GenericRecord record = AvroTestUtil.deserialize(data, schema);
 			GenericRecord cf1Record = (GenericRecord) record.get("cf1");
 
 			assertEquals(row.cf1cq1, cf1Record.get("cq1").toString());
