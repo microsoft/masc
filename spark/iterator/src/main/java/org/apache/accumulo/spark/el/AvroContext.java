@@ -22,7 +22,7 @@ public class AvroContext extends ELContext {
 
 	@Override
 	public ELResolver getELResolver() {
-		return null; // resolver;
+		return resolver;
 	}
 
 	@Override

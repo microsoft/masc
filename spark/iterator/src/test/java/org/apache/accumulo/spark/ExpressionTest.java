@@ -20,62 +20,6 @@ import org.junit.Test;
 
 public class ExpressionTest extends TestCase {
 
-	public class MyELResolver extends ELResolver {
-		@Override
-		public Class<?> getCommonPropertyType(ELContext context, Object base) {
-			System.out.println("getCommonPropertyType: " + base);
-			return int.class;
-		}
-
-		@Override
-		public Iterator<FeatureDescriptor> getFeatureDescriptors(ELContext context, Object base) {
-			return null;
-		}
-
-		@Override
-		public Class<?> getType(ELContext context, Object base, Object property) {
-			System.out.println("getType: " + base + " and " + property);
-			return int.class;
-		}
-
-		@Override
-		public Object getValue(ELContext context, Object base, Object property) {
-			System.out.println("getValue: " + base + " and " + property);
-
-			context.setPropertyResolved(true);
-
-			return 3;
-			// if (property.equals("r")) {
-			// }
-			// return 2;
-		}
-
-		@Override
-		public boolean isReadOnly(ELContext context, Object base, Object property) {
-			return true;
-		}
-
-		@Override
-		public void setValue(ELContext arg0, Object arg1, Object arg2, Object arg3) {
-			throw new ELException("property is read-only");
-		}
-
-		@Override
-		public Object invoke(ELContext context, Object base, Object method, Class<?>[] paramTypes, Object[] params) {
-			if (base.getClass().equals(String.class) && method.equals("endsWith") && params.length == 1) {
-				System.out.println("Invoke endsWith");
-				context.setPropertyResolved(true);
-				return ((String) base).endsWith((String) params[0]);
-			} else if (method.equals("in")) {
-				context.setPropertyResolved(true);
-				return Arrays.binarySearch((Object[]) params[0], base) != -1;
-			}
-
-			System.out.println("Invoke: " + base + " + " + method);
-			return null;
-		}
-	}
-
 	private AvroContext context;
 	private ExpressionFactory factory;
 	private Schema schema;
@@ -86,20 +30,22 @@ public class ExpressionTest extends TestCase {
 
 		SchemaMappingField[] schemaMappingFields = new SchemaMappingField[] {
 				new SchemaMappingField("cf1", "cq1", "long", "v0"),
-				new SchemaMappingField("cf2", "cq2", "double", "v1") };
+				new SchemaMappingField("cf2", "cq2", "double", "v1"),
+				new SchemaMappingField("cf2", "cq3", "string", "v2") };
 
 		schema = AvroUtil.buildSchema(schemaMappingFields);
 
 		context = new AvroContext(schema, schemaMappingFields);
 	}
 
-	private void setRecordValues(long cq1, double cq2) {
+	private void setRecordValues(long cq1, double cq2, String cq3) {
 
 		GenericRecordBuilder cf1RecordBuilder = new GenericRecordBuilder(schema.getField("cf1").schema());
 		GenericRecordBuilder cf2RecordBuilder = new GenericRecordBuilder(schema.getField("cf2").schema());
 
 		cf1RecordBuilder.set("cq1", cq1);
 		cf2RecordBuilder.set("cq2", cq2);
+		cf2RecordBuilder.set("cq3", cq3);
 
 		GenericRecordBuilder rootRecordBuilder = new GenericRecordBuilder(schema);
 		rootRecordBuilder.set("cf1", cf1RecordBuilder.build());
@@ -114,15 +60,78 @@ public class ExpressionTest extends TestCase {
 		ValueExpression exprV0 = factory.createValueExpression(context, "${v0}", long.class);
 
 		// set the values after the expression is created
-		setRecordValues(3L, 2.0);
+		setRecordValues(3L, 2.0, "");
 		assertEquals(3L, exprV0.getValue(context));
 
 		// test if we can reset it
-		setRecordValues(4L, 2.5);
+		setRecordValues(4L, 2.5, "");
 		assertEquals(4L, exprV0.getValue(context));
 
 		// check for the second variable
 		ValueExpression exprV1 = factory.createValueExpression(context, "${v1}", double.class);
 		assertEquals(2.5, exprV1.getValue(context));
+	}
+
+	@Test
+	public void testVariableConditions() {
+
+		ValueExpression expr = factory.createValueExpression(context, "${v0 > 2.1 && v1 < 3}", boolean.class);
+
+		setRecordValues(3L, 2.0, "");
+
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringEndsWith() {
+
+		ValueExpression expr = factory.createValueExpression(context, "${v2.endsWith('test')}", boolean.class);
+		setRecordValues(3L, 2.0, "This is a test");
+		assertTrue((boolean) expr.getValue(context));
+
+		expr = factory.createValueExpression(context, "${!v2.endsWith('foo')}", boolean.class);
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringStartsWith() {
+
+		ValueExpression expr = factory.createValueExpression(context, "${v2.startsWith('This')}", boolean.class);
+		setRecordValues(3L, 2.0, "This is a test");
+		assertTrue((boolean) expr.getValue(context));
+
+		expr = factory.createValueExpression(context, "${!v2.startsWith('this')}", boolean.class);
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringContains() {
+
+		ValueExpression expr = factory.createValueExpression(context, "${v2.contains('is')}", boolean.class);
+		setRecordValues(3L, 2.0, "This is a test");
+		assertTrue((boolean) expr.getValue(context));
+
+		expr = factory.createValueExpression(context, "${!v2.contains('IS')}", boolean.class);
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testStringIn() {
+
+		ValueExpression expr = factory.createValueExpression(context, "${v2.in('a','b','c')}", boolean.class);
+		setRecordValues(3L, 2.0, "b");
+		assertTrue((boolean) expr.getValue(context));
+	}
+
+	@Test
+	public void testIntIn() {
+
+		ValueExpression expr = factory.createValueExpression(context, "${v0.in(0, 1, 3)}", boolean.class);
+		setRecordValues(3L, 2.0, "b");
+		assertTrue((boolean) expr.getValue(context));
+
+		expr = factory.createValueExpression(context, "${v0.in(0, 1)}", boolean.class);
+		setRecordValues(3L, 2.0, "b");
+		assertFalse((boolean) expr.getValue(context));
 	}
 }
