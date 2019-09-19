@@ -27,7 +27,6 @@ public class AvroVariableMapper extends VariableMapper {
 
 	@Override
 	public ValueExpression resolveVariable(String variable) {
-
 		SchemaMappingField field = findSchemaMappingFieldByVariable(variable);
 
 		Field columnFamilyField = schema.getField(field.getColumnFamily());
