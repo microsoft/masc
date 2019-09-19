@@ -154,6 +154,9 @@ public class AvroRowEncoderIterator extends BaseMappingIterator {
         return null;
     }
 
+    // Debugging
+    // System.out.println(record);
+
     // serialize
     writer.write(record, encoder);
     encoder.flush();

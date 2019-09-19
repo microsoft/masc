@@ -38,36 +38,56 @@ public class AvroUtil {
 		}
 	}
 
+	private static SchemaBuilder.FieldAssembler<Schema> closeFieldAssembler(
+			SchemaBuilder.FieldAssembler<Schema> rootAssembler,
+			SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler, String columnFamily) {
+
+		if (columnFieldsAssembler == null)
+			return rootAssembler;
+
+		// add nested type to to root assembler
+		return rootAssembler.name(columnFamily).type(columnFieldsAssembler.endRecord()).noDefault();
+	}
+
 	public static Schema buildSchema(SchemaMappingField[] schemaMappingFields) {
 		// construct schema
-		// List<Schema.Field> fields = new ArrayList<>();
 		SchemaBuilder.FieldAssembler<Schema> rootAssembler = SchemaBuilder.record("root").fields();
 
-		// group fields by column family
-		Map<String, List<SchemaMappingField>> groupedByColumnFamily = Stream.of(schemaMappingFields)
-				.collect(Collectors.groupingBy(SchemaMappingField::getColumnFamily));
+		// note that the order needs to be exactly in-sync with the avro schema
+		// generated on the MMLSpark/Scala side
+		String lastColumnFamily = null;
+		SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = null;
+		for (SchemaMappingField schemaMappingField : schemaMappingFields) {
 
-		// loop over column families
-		for (Map.Entry<String, List<SchemaMappingField>> entry : groupedByColumnFamily.entrySet()) {
+			String columnFamily = schemaMappingField.getColumnFamily();
+			String columnQualifier = schemaMappingField.getColumnQualifier();
+			String type = schemaMappingField.getType();
 
-			List<SchemaMappingField> schemaMappingFieldsPerFamily = entry.getValue();
-			SchemaMappingField firstField = schemaMappingFieldsPerFamily.get(0);
+			if (columnQualifier != null) {
+				if (lastColumnFamily == null || !lastColumnFamily.equals(columnFamily)) {
 
-			if (schemaMappingFieldsPerFamily.size() > 1 || firstField.getColumnQualifier() != null) {
-				// loop over column qualifiers
-				SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = SchemaBuilder.record(entry.getKey())
-						.fields();
-				for (SchemaMappingField schemaMappingField : schemaMappingFieldsPerFamily)
-					columnFieldsAssembler = addAvroField(columnFieldsAssembler, schemaMappingField.getType(),
-							schemaMappingField.getColumnQualifier());
+					// close previous record
+					rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily);
 
-				// add nested type to to root assembler
-				rootAssembler = rootAssembler.name(entry.getKey()).type(columnFieldsAssembler.endRecord()).noDefault();
+					// open new record
+					columnFieldsAssembler = SchemaBuilder.record(columnFamily).fields();
+				}
+
+				// add the current field
+				columnFieldsAssembler = addAvroField(columnFieldsAssembler, type, columnQualifier);
 			} else {
+				// close previous record
+				rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily);
+				columnFieldsAssembler = null;
 
-				rootAssembler = addAvroField(rootAssembler, firstField.getType(), firstField.getColumnFamily());
+				// add the top-level field
+				rootAssembler = addAvroField(rootAssembler, type, columnFamily);
 			}
+
+			lastColumnFamily = columnFamily;
 		}
+
+		rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily);
 
 		// setup serialization
 		return rootAssembler.endRecord();

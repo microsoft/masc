@@ -6,24 +6,17 @@ import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
-import org.apache.accumulo.core.data.ByteSequence;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Range;
 import org.apache.accumulo.core.data.Value;
 import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.avro.Schema;
-import org.apache.avro.SchemaBuilder;
 import org.apache.avro.generic.GenericRecord;
-import org.apache.avro.io.BinaryDecoder;
-import org.apache.avro.io.DecoderFactory;
-import org.apache.avro.specific.SpecificDatumReader;
 import org.junit.Test;
 
 public class AvroRowTopLevelTest {
@@ -36,7 +29,7 @@ public class AvroRowTopLevelTest {
 		Schema schema = AvroUtil.buildSchema(schemaMappingFields);
 
 		assertEquals(
-				"{\"type\":\"record\",\"name\":\"root\",\"fields\":[{\"name\":\"cf2\",\"type\":[\"null\",\"double\"],\"default\":null},{\"name\":\"cf1\",\"type\":{\"type\":\"record\",\"name\":\"cf1\",\"fields\":[{\"name\":\"cq1\",\"type\":[\"null\",\"long\"],\"default\":null}]}}]}",
+				"{\"type\":\"record\",\"name\":\"root\",\"fields\":[{\"name\":\"cf1\",\"type\":{\"type\":\"record\",\"name\":\"cf1\",\"fields\":[{\"name\":\"cq1\",\"type\":[\"null\",\"long\"],\"default\":null}]}},{\"name\":\"cf2\",\"type\":[\"null\",\"double\"],\"default\":null}]}",
 				schema.toString());
 	}
 
