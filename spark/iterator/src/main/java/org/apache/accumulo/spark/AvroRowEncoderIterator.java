@@ -139,7 +139,7 @@ public class AvroRowEncoderIterator extends BaseMappingIterator {
   }
 
   @Override
-  protected byte[] endRow() throws IOException {
+  protected byte[] endRow(Text rowKey) throws IOException {
     // populate root record
     for (SubGenericRecordBuilder nestedRecordBuilder : columnFamilyRecordBuilder.values())
       nestedRecordBuilder.endRow();
@@ -148,7 +148,7 @@ public class AvroRowEncoderIterator extends BaseMappingIterator {
 
     // evaluate the filter against the record
     if (filterExpression != null) {
-      filterContext.setAvroRecord(record);
+      filterContext.setCurrent(rowKey, record);
 
       if (!(boolean) filterExpression.getValue(filterContext))
         return null;

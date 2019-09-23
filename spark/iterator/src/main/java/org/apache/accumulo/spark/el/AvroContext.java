@@ -8,10 +8,12 @@ import javax.el.VariableMapper;
 import org.apache.accumulo.spark.SchemaMappingField;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.GenericData.Record;
+import org.apache.hadoop.io.Text;
 
 public class AvroContext extends ELContext {
 
 	private Record avroRecord;
+	private Text rowKey;
 	private VariableMapper variableMapper;
 	private ELResolver resolver;
 
@@ -39,7 +41,12 @@ public class AvroContext extends ELContext {
 		return avroRecord;
 	}
 
-	public void setAvroRecord(Record avroRecord) {
+	public Text getRowKey() {
+		return rowKey;
+	}
+
+	public void setCurrent(Text rowKey, Record avroRecord) {
+		this.rowKey = rowKey;
 		this.avroRecord = avroRecord;
 	}
 }

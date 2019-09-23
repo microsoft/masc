@@ -43,7 +43,7 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
 
   protected abstract void processCell(Key key, Value value, Object decodedValue) throws IOException;
 
-  protected abstract byte[] endRow() throws IOException;
+  protected abstract byte[] endRow(Text rowKey) throws IOException;
 
   protected ValueDecoder getDecoder(String type) {
     // TODO: since the value decoders are stateless move to singletons
@@ -115,7 +115,7 @@ public abstract class BaseMappingIterator implements SortedKeyValueIterator<Key,
       } while (!foundFeature); // skip rows until we found a single feature
 
       // produce final row
-      rowValue = endRow();
+      rowValue = endRow(currentRow);
       // skip if null
     } while (rowValue == null);
 
