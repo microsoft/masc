@@ -152,4 +152,11 @@ public class ExpressionTest extends TestCase {
 		setRecordValues("key2", 3L, 2.0, "abc");
 		assertFalse((boolean) expr.getValue(context));
 	}
+
+	@Test
+	public void testObjectPropertyBased() {
+		ValueExpression expr = factory.createValueExpression(context, "${cf1.cq1 == 3}", boolean.class);
+		setRecordValues("key1", 3L, 2.0, "abc");
+		assertTrue((boolean) expr.getValue(context));
+	}
 }
