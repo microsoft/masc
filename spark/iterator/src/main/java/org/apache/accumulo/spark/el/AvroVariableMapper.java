@@ -22,12 +22,18 @@ public class AvroVariableMapper extends VariableMapper {
 			if (smf.getFilterVariableName().equals(variable))
 				return smf;
 
-		throw new IllegalArgumentException("Unable to find variable '" + variable + "' in schema");
+		return null;
 	}
 
 	@Override
 	public ValueExpression resolveVariable(String variable) {
+		if (variable.equals("rowKey"))
+			return RowKeyVariableExpression.INSTANCE;
+
+		// check if this is a statically resolved variable (e.g. v2 = cf1.cq1)
 		SchemaMappingField field = findSchemaMappingFieldByVariable(variable);
+		if (field == null)
+			return new AvroObjectExpression(schema.getField(variable));
 
 		Field columnFamilyField = schema.getField(field.getColumnFamily());
 
