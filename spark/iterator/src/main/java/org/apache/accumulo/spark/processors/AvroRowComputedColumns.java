@@ -66,8 +66,8 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
   private List<ExpressionColumn> expressionColumns;
 
   /**
-   * Just the definition of the expression. Need to collect them all first so the
-   * AVRO schema can be build.
+   * Just the definition of the expression. Need to collect them all first so
+   * the AVRO schema can be build.
    */
   static class ExpressionColumnDefinition {
     private RowBuilderField schemaField;
@@ -143,7 +143,7 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
   /**
    * 
    * @return a collection of RowBuilderFields based on the column expression
-   *         definitions.
+   * definitions.
    */
   @Override
   public Collection<RowBuilderField> getSchemaFields() {
@@ -155,8 +155,7 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
    * Initialize the columns expression. Can't be done in the constructor as the
    * schema wasn't ready.
    * 
-   * @param schema       the AVRO input schema.
-   * @param schemaFields the user supplied schema.
+   * @param schema the AVRO input schema.
    */
   @Override
   public void initialize(Schema schema) {
@@ -180,7 +179,7 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
   public boolean consume(Text rowKey, IndexedRecord record) throws IOException {
     this.expressionContext.setCurrent(rowKey, record);
 
-    // compute each exporession
+    // compute each expression
     for (ExpressionColumn expr : this.expressionColumns)
       expr.setFieldValue(record);
 

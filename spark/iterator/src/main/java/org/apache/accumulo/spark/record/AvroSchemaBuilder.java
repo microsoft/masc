@@ -48,29 +48,22 @@ public class AvroSchemaBuilder {
         .type().optional();
 
     switch (type) {
-    case String:
-      return intermediate.stringType();
-
-    case Long:
-      return intermediate.longType();
-
-    case Integer:
-      return intermediate.intType();
-
-    case Double:
-      return intermediate.doubleType();
-
-    case Float:
-      return intermediate.floatType();
-
-    case Boolean:
-      return intermediate.booleanType();
-
-    case Bytes:
-      return intermediate.bytesType();
-
-    default:
-      throw new IllegalArgumentException("Unsupported type '" + type + "'");
+      case String:
+        return intermediate.stringType();
+      case Long:
+        return intermediate.longType();
+      case Integer:
+        return intermediate.intType();
+      case Double:
+        return intermediate.doubleType();
+      case Float:
+        return intermediate.floatType();
+      case Boolean:
+        return intermediate.booleanType();
+      case Bytes:
+        return intermediate.bytesType();
+      default:
+        throw new IllegalArgumentException("Unsupported type '" + type + "'");
     }
   }
 

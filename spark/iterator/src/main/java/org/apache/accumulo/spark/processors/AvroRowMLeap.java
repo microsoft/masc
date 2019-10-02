@@ -19,12 +19,7 @@ package org.apache.accumulo.spark.processors;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.Collection;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.spark.record.RowBuilderField;
@@ -167,7 +162,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
             return new OutputField(new RowBuilderField(name, null, RowBuilderType.Long.toString(), name), idx);
 
           return null;
-        }).filter(f -> f != null).collect(Collectors.toList());
+        }).filter(Objects::nonNull).collect(Collectors.toList());
   }
 
   @Override
@@ -204,7 +199,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
       mleapFields.add(SchemaConverter.avroToMleapField(field, null));
     }
 
-    this.mleapAvroFields = avroFields.toArray(new Field[avroFields.size()]);
+    this.mleapAvroFields = avroFields.toArray(new Field[0]);
     this.mleapSchema = StructType.apply(mleapFields).get();
     this.mleapValues = new Object[this.mleapAvroFields.length];
 
@@ -238,7 +233,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
     DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
 
     // execute ML model
-    scala.collection.Iterator<Row> iter = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
+    scala.collection.Iterator<Row> iter = resultDataFrame.collect().iterator();
     Row row = iter.next();
 
     // Helpful when debugging
