@@ -61,7 +61,7 @@ class AccumuloInputPartitionReader(tableName: String,
   private val avroIterator = new IteratorSetting(
     priority,
     "AVRO",
-    "org.apache.accumulo.core.iterators.user.avro.AvroRowEncoderIterator")
+    "org.apache.accumulo.spark.AvroRowEncoderIterator")
 
   // drop rowKey from schema
   private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
@@ -99,6 +99,9 @@ class AccumuloInputPartitionReader(tableName: String,
   override def close(): Unit = {
     if (scanner != null)
       scanner.close()
+
+    if (client != null)
+      client.close()
   }
 
   @IOException
