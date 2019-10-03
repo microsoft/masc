@@ -22,7 +22,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, InputPartitionReader}
 import org.apache.spark.sql.types.{DataTypes, StructType}
-import org.apache.spark.sql.sources.{Filter, GreaterThan}
+import org.apache.spark.sql.sources.Filter
 import scala.collection.JavaConverters._
 
 // TODO: https://github.com/apache/spark/blob/053dd858d38e6107bc71e0aa3a4954291b74f8c8/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsReportPartitioning.java
@@ -43,10 +43,10 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   var filters = Array.empty[Filter]
 
-  val rowKeyColumn = options.get("rowKey").orElse("rowKey")
+  private val rowKeyColumn = options.get("rowKey").orElse("rowKey")
 
   // needs to be nullable so that Avro doesn't barf when we want to add another column
-  private var requiredSchema = schema.add(rowKeyColumn, DataTypes.StringType, true)
+  private var requiredSchema = schema.add(rowKeyColumn, DataTypes.StringType, nullable = true)
 
   private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
   private val jsonSchema = AvroUtil.catalystSchemaToJson(schemaWithoutRowKey)

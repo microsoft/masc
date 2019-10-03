@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo;
+package org.apache.accumulo
 
 import java.util.Optional
 
