@@ -88,7 +88,7 @@ public class AvroRowFilter implements AvroRowConsumer {
 
   @Override
   public Collection<RowBuilderField> getSchemaFields() {
-    return Collections.emptyList();
+    return Collections.<RowBuilderField>emptyList();
   }
 
   @Override

@@ -18,7 +18,12 @@
 package org.apache.accumulo.spark;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+import java.util.Objects;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.core.data.ByteSequence;
@@ -49,13 +54,15 @@ import com.fasterxml.jackson.databind.ObjectMapper;
  * 
  * Features:
  * 
- * - Combines selected key/value pairs into a single AVRO encoded row
- * - Output schema convention: column family are top-level keys, column
- *   qualifiers are nested record fields
- * - Row-level filtering through user-supplied Java Unified Expression Language
- *   (JUEL)-encoded filter constraint
- * - Compute columns based on other row-level columns
- * - Schema less serialization performed to safe bandwidth
+ * <ul>
+ * <li>Combines selected key/value pairs into a single AVRO encoded row</li>
+ * <li>Output schema convention: column family are top-level keys, column
+ * qualifiers are nested record fields.</li>
+ * <li>Row-level filtering through user-supplied Java Unified Expression
+ * Language (JUEL)-encoded filter constraint.</li>
+ * <li>Compute columns based on other row-level columns.</li>
+ * <li>Schema less serialization performed to safe bandwidth.</li>
+ * </ul>
  */
 public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
   /**
@@ -133,7 +140,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     // union( user-supplied fields + computed fields )
     ArrayList<RowBuilderField> allFields = new ArrayList<>(Arrays.asList(schemaFields));
 
-    // initialize compute columns (only definitions are initialized, need to wait for schema)
+    // initialize compute columns (only definitions are initialized, need to wait
+    // for schema)
     // if (computedColumns != null)
     // allFields.addAll(computedColumns.getSchemaFields());
 
@@ -288,7 +296,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     if (sk != null && sk.getColumnFamilyData().length() == 0 && sk.getColumnQualifierData().length() == 0
         && sk.getColumnVisibilityData().length() == 0 && sk.getTimestamp() == Long.MAX_VALUE
         && !range.isStartKeyInclusive()) {
-      // assuming that we are seeking using a key previously returned by this iterator therefore go to the next row
+      // assuming that we are seeking using a key previously returned by this iterator
+      // therefore go to the next row
       Key followingRowKey = sk.followingKey(PartialKey.ROW);
       if (range.getEndKey() != null && followingRowKey.compareTo(range.getEndKey()) > 0)
         return;
