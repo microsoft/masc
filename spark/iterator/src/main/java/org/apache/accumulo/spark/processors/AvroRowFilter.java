@@ -33,8 +33,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 
 /**
- * Evaluates the user-supplied filter (JUEL syntax) against the constructed AVRO
- * record.
+ * Evaluates the user-supplied filter (JUEL syntax) against the constructed
+ * AVRO record.
  * 
  * @implNote filter operates on AVRO Record object, not on the serialized
  *           version.

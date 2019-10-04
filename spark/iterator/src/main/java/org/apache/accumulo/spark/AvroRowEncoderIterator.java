@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.List;
+import java.util.Objects;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -78,7 +79,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   /**
    * Key for filter option.
    */
-  public static final String MLEAP_FILTER = "mleap.filter";
+  public static final String MLEAP_FILTER = "mleapfilter";
 
   /**
    * A custom and fast implementation of an Avro record.
@@ -157,7 +158,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
         // filter post mleap
         AvroRowFilter.create(options, MLEAP_FILTER) })
         // compute & filter are optional depending on input
-        .filter(x -> x != null).collect(Collectors.toList());
+        .filter(Objects::nonNull).collect(Collectors.toList());
 
     // add all additional fields the consumers want to output
     allFields.addAll(this.processors.stream().flatMap(f -> f.getSchemaFields().stream()).collect(Collectors.toList()));
@@ -193,7 +194,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   }
 
   private void encodeRow() throws IOException {
-    byte[] rowValue = null;
+    byte[] rowValue;
     Text currentRow;
 
     do {

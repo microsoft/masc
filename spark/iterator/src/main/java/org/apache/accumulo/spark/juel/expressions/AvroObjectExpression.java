@@ -53,7 +53,7 @@ public class AvroObjectExpression extends ValueExpression {
   public Object getValue(ELContext context) {
     IndexedRecord record = ((AvroELContext) context).getAvroRecord();
 
-    return (IndexedRecord) record.get(this.field.pos());
+    return record.get(this.field.pos());
   }
 
   @Override

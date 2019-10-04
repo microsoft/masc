@@ -27,7 +27,7 @@ import org.apache.avro.specific.SpecificDatumReader
 import org.apache.spark.sql.avro.AvroDeserializer
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader
-import org.apache.spark.sql.types.{DataTypes, StructType}
+import org.apache.spark.sql.types.StructType
 import org.apache.hadoop.io.Text
 import java.io.IOException
 import java.util.Collections
@@ -47,9 +47,9 @@ class AccumuloInputPartitionReader(tableName: String,
   val defaultPriority = "20"
   val defaultNumQueryThreads = "1"
 
-  val priority = Integer.valueOf(properties.getProperty("priority", defaultPriority))
+  private val priority = Integer.valueOf(properties.getProperty("priority", defaultPriority))
   // this parameter is impacted by number of accumulo splits and spark partitions and executors
-  val numQueryThreads = Integer.valueOf(properties.getProperty("numQueryThreads", defaultNumQueryThreads))
+  private val numQueryThreads = Integer.valueOf(properties.getProperty("numQueryThreads", defaultNumQueryThreads))
 
   private val authorizations = new Authorizations()
   private val client = Accumulo.newClient().from(properties).build()
@@ -125,7 +125,7 @@ class AccumuloInputPartitionReader(tableName: String,
 
       if (rowKeyColumnIndex >= 0) {
         // move row key id into internalrow
-        entry.getKey().getRow(rowKeyText)
+        entry.getKey.getRow(rowKeyText)
 
         // avoid yet another byte array copy...
         val str = UTF8String.fromBytes(rowKeyText.getBytes, 0, rowKeyText.getLength)

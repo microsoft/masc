@@ -32,11 +32,11 @@ import org.apache.avro.generic.GenericContainer;
 import org.apache.avro.generic.IndexedRecord;
 
 /**
- * This class collects all cells of interested into an AVRO Generic Record.
+ * This class collects all cells of interest into an AVRO Generic Record.
  * 
- * Cells with non-empty column family and column qualifier are stored in nested
- * AVRO records. Cells with empty column qualifier are stored in the top-level
- * record.
+ * Cells with non-empty column family and column qualifier are stored in
+ * nested AVRO records.
+ * Cells with empty column qualifier are stored in the top-level record.
  * 
  * Example:
  * 
@@ -90,11 +90,11 @@ public class AvroFastRecord implements GenericContainer, IndexedRecord {
       AvroFastRecord rec = new AvroFastRecord(f.schema());
       this.values[f.pos()] = rec;
       return rec;
-    }).collect(Collectors.toList()).toArray(new AvroFastRecord[0]);
+    }).toArray(AvroFastRecord[]::new);
 
     // find all primitive fields
     this.primitiveFields = schema.getFields().stream().filter(f -> f.schema().getType() != Type.RECORD)
-        .mapToInt(f -> f.pos()).toArray();
+        .mapToInt(Field::pos).toArray();
   }
 
   /**

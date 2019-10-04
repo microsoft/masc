@@ -19,7 +19,7 @@ package org.apache.accumulo
 
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType}
-import org.codehaus.jackson.map.{ObjectMapper}
+import org.codehaus.jackson.map.ObjectMapper
 import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion
 
 import scala.beans.BeanProperty
@@ -30,7 +30,7 @@ case class RowBuilderField(@BeanProperty val cf: String,  // column family
                            @BeanProperty val fvn: String, // filter variable name
                            @BeanProperty val t: String)   // type
 
-case class JsonSchema(val json: String, attributeToVariableMapping: Map[String, String])
+case class JsonSchema(json: String, attributeToVariableMapping: Map[String, String])
 
 @SerialVersionUID(1L)
 object AvroUtil {

@@ -32,7 +32,7 @@ public interface AvroRowConsumer {
    * @param rowKey The row key.
    * @param record The AVRO record.
    * @return The same or a new processed record. Null if processing should be
-   *         stopped (e.g. does not match a filter).
+   * stopped (e.g. does not match a filter).
    */
   boolean consume(Text rowKey, IndexedRecord record) throws IOException;
 
@@ -51,7 +51,8 @@ public interface AvroRowConsumer {
   Collection<RowBuilderField> getSchemaFields();
 
   /**
-   * Final initialization of the consumer wants the entire schema was discovered.
+   * Final initialization of the consumer wants the entire schema was
+   * discovered.
    * 
    * @param schema The final schema.
    */
