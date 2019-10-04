@@ -25,5 +25,6 @@
   <modules>
     <module>datasource</module>
     <module>iterator</module>
+    <module>integration-test</module>
   </modules>
 </project>

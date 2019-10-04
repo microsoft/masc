@@ -212,6 +212,11 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
         while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
           Key sourceTopKey = sourceIter.getTopKey();
 
+          // System.out
+          // .println("CELL: " + sourceTopKey.getRow().toString() + " : " +
+          // sourceTopKey.getColumnFamily().toString()
+          // + " : " + sourceTopKey.getColumnQualifier().toString() + " : ");
+
           // different column family?
           if (currentFamily == null || !sourceTopKey.getColumnFamilyData().equals(currentFamily)) {
             currentFamily = sourceTopKey.getColumnFamilyData();
@@ -220,7 +225,6 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
           // skip if no mapping found
           if (currentQualifierMapping != null) {
-
             RowBuilderCellConsumer consumer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
             if (consumer != null) {
               foundConsumer = true;
