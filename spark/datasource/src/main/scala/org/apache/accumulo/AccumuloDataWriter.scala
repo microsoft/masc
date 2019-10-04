@@ -59,63 +59,77 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     private val intAccessor = InternalRow.getAccessor(IntegerType)
     private val stringAccessor = InternalRow.getAccessor(StringType)
 
-    private def encode(record: InternalRow, fieldIdx: Int, field: StructField) = {
+    private def getEncoder(fieldIdx: Int, field: StructField) = {
         field.dataType match {
-            case DoubleType => doubleEncoder.encode(doubleAccessor(record, fieldIdx).asInstanceOf[Double])
-            case FloatType => floatEncoder.encode(floatAccessor(record, fieldIdx).asInstanceOf[Float])
-            case LongType => longEncoder.encode(longAccessor(record, fieldIdx).asInstanceOf[Long])
-            case IntegerType => intEncoder.encode(intAccessor(record, fieldIdx).asInstanceOf[Integer])
-            case StringType => stringAccessor(record, fieldIdx).asInstanceOf[UTF8String].getBytes
+            case DoubleType => (record: InternalRow) => doubleEncoder.encode(doubleAccessor(record, fieldIdx).asInstanceOf[Double])
+            case FloatType => (record: InternalRow) => floatEncoder.encode(floatAccessor(record, fieldIdx).asInstanceOf[Float])
+            case LongType => (record: InternalRow) => longEncoder.encode(longAccessor(record, fieldIdx).asInstanceOf[Long])
+            case IntegerType => (record: InternalRow) => intEncoder.encode(intAccessor(record, fieldIdx).asInstanceOf[Integer])
+            case StringType => (record: InternalRow) => stringAccessor(record, fieldIdx).asInstanceOf[UTF8String].getBytes
         }
     }
 
     private val structAccessor = InternalRow.getAccessor(new StructType())
 
-    // TODO: expose this as another input column
-    // private val columnVisibilityEmpty = new ColumnVisibility
-
-    def write(record: InternalRow): Unit = {
-        // println(s"writing record: ${record}")
-
-        // TODO: iterating over the schema should be done outside of the write-loop
-        schema.fields.zipWithIndex.foreach {
-            // loop through fields
-            case (cf: StructField, cfIdx: Int) => {
-                if (cfIdx != rowKeyIdx) {
-                    // check which types we have top-level
-                    cf.dataType match {
-                       case ct: StructType => {
-                            val nestedRecord = structAccessor(record, cfIdx).asInstanceOf[InternalRow]
-
-                            ct.fields.zipWithIndex.foreach {
+    // pre-compute which fields and how to create the mutations...
+    private val recordToMutation = schema.fields.zipWithIndex
+        // exclude rowkey
+        .filter({ case (_, cfIdx: Int) => cfIdx != rowKeyIdx }) 
+        // loop through the rest of the fields
+        .map { case (cf: StructField, cfIdx: Int) => {
+                // check which types we have top-level
+                cf.dataType match {
+                   case ct: StructType => {
+                        val nestedFields = ct.fields.zipWithIndex.map {
                                 case (cq: StructField, cqIdx) => {
-                                    val mutation = new Mutation(stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes)
-                                    mutation.put(stringEncoder.encode(cf.name), stringEncoder.encode(cq.name), encode(nestedRecord, cqIdx, cq))
-                                    batchWriter.addMutation(mutation)
-                                    batchWriter.flush
+                                    val cfBytes = stringEncoder.encode(cf.name)
+                                    val cqBytes = stringEncoder.encode(cq.name)
+                                    val encoder = getEncoder(cqIdx, cq)
+
+                                    (rowKey: Array[Byte], nestedRecord: InternalRow) => {
+                                        // not using the fluent interface to provide backward compat
+                                        val mutation = new Mutation(rowKey)
+                                        mutation.put(cfBytes, cqBytes, encoder(nestedRecord))
+                                        batchWriter.addMutation(mutation)
+                                    }
                                 }
                             }
-                       }
-                       case _ => { 
-                           val bytes = encode(record, cfIdx, cf) 
-                        //    println(s"\twriting row ${cf.name} with bytes: ${bytes.length}")
 
-                           val mutation = new Mutation(stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes)
-                           mutation.put(stringEncoder.encode(cf.name), Array.empty[Byte], encode(record, cfIdx, cf))
-                           batchWriter.addMutation(mutation)
-                        //    batchWriter.flush
-                       }
-                    }
+                        // parent function
+                        (rowKey: Array[Byte], record: InternalRow) => {
+                            val nestedRecord = structAccessor(record, cfIdx).asInstanceOf[InternalRow]
+
+                            nestedFields.foreach { _(rowKey, nestedRecord) }
+                        }
+                   }
+                   case _ => { 
+                        val cfBytes = stringEncoder.encode(cf.name)
+                        val encoder = getEncoder(cfIdx, cf)
+
+                        (rowKey: Array[Byte], record: InternalRow) => {
+                            println(s"\twriting row ${cf.name}")
+
+                            // not using the fluent interface to provide backward compat
+                            val mutation = new Mutation(rowKey)
+                            mutation.put(cfBytes, Array.empty[Byte], encoder(record))
+                            batchWriter.addMutation(mutation)
+                        }
+                   }
                 }
             }
         }
 
-        // batchWriter.flush
+    // TODO: expose this as another input column
+    // private val columnVisibilityEmpty = new ColumnVisibility
+
+    def write(record: InternalRow): Unit = {
+        println(s"writing record: ${record}")
+
+        val rowKey = stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes
+        recordToMutation.foreach { _(rowKey, record) }
     }
 
     def commit(): WriterCommitMessage = {
-        // println("MARKUS COMMIT")
-        // batchWriter.flush()
         batchWriter.close
 
         client.close
@@ -123,7 +137,6 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     }
 
     def abort(): Unit = {
-        // println("MARKUS ABORT")
         batchWriter.close
         client.close
     }

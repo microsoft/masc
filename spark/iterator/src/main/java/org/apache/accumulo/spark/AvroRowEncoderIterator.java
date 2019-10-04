@@ -47,6 +47,7 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.hadoop.io.Text;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.nio.file.*;
 
 /**
  * Backend iterator for Accumulo Connector for Apache Spark.
@@ -130,6 +131,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
       throws IOException {
+    Files.write(Paths.get("/tmp/my.log"), (options.toString() + "\n").getBytes(), StandardOpenOption.CREATE,
+        StandardOpenOption.APPEND);
 
     this.sourceIter = source;
 
@@ -210,11 +213,6 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
         while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
           Key sourceTopKey = sourceIter.getTopKey();
-
-          // System.out
-          // .println("CELL: " + sourceTopKey.getRow().toString() + " : " +
-          // sourceTopKey.getColumnFamily().toString()
-          // + " : " + sourceTopKey.getColumnQualifier().toString() + " : ");
 
           // different column family?
           if (currentFamily == null || !sourceTopKey.getColumnFamilyData().equals(currentFamily)) {

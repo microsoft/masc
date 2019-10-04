@@ -54,8 +54,10 @@ class AccumuloInputPartitionReader(tableName: String,
   private val authorizations = new Authorizations()
   private val client = Accumulo.newClient().from(properties).build()
   private val scanner = client.createBatchScanner(tableName, authorizations, numQueryThreads)
+
   scanner.setRanges(Collections.singletonList(
-    new Range(new Key(start), false, new Key(stop), true))
+    new Range(if (start.length == 0) null else new Key(start), start.length == 0, 
+      if (stop.length == 0) null else new Key(stop), true))
   )
 
   private val avroIterator = new IteratorSetting(
@@ -78,6 +80,10 @@ class AccumuloInputPartitionReader(tableName: String,
   avroIterator.addOption("schema", jsonSchema)
   if (filterInJuel.isDefined)
     avroIterator.addOption("filter", filterInJuel.get)
+
+  // forward options
+  avroIterator.addOption("mleap.bundle", properties.getProperty("mleap.bundle", ""))
+  avroIterator.addOption("mleap.filter", properties.getProperty("mleap.filter", ""))
 
   scanner.addScanIterator(avroIterator)
 

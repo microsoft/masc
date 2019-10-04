@@ -86,7 +86,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
 
     val client = Accumulo.newClient().from(properties).build()
-    val splits = ArrayBuffer(new Text("-inf").getBytes, new Text("inf").getBytes)
+    val splits = ArrayBuffer(Array.empty[Byte], Array.empty[Byte])
     splits.insertAll(1, client
         .tableOperations().listSplits(tableName, maxPartitions)
         .asScala
