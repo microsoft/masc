@@ -36,7 +36,11 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     // val batchWriter = new TabletServerBatchWriter(context, new BatchWriterConfig)
     // private val tableId = Tables.getTableId(context, tableName)
 
-    private val client = Accumulo.newClient().from(properties).build();
+    private val client = Accumulo.newClient().from(properties).build()
+    // create table if it's not there
+    if (!client.tableOperations().exists(tableName)) 
+        client.tableOperations().create(tableName);
+    
     private val batchWriter = client.createBatchWriter(tableName)
 
     private val doubleEncoder = new DoubleLexicoder
@@ -63,6 +67,8 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     private val structAccessor = InternalRow.getAccessor(new StructType())
 
     def write(record: InternalRow): Unit = {
+        // println(s"writing record: ${record}")
+
         // TODO: iterating over the schema should be done outside of the write-loop
         schema.fields.zipWithIndex.foreach {
             // loop through fields
@@ -83,16 +89,23 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
 
                         }
                    }
-                   case _ => batchWriter.addMutation(new Mutation(new Text("row_id"))
+                   case _ => { 
+                       val bytes = encode(record, cfIdx, cf) 
+                    //    println(s"\twriting row ${cf.name} with bytes: ${bytes.length}")
+
+                       batchWriter.addMutation(new Mutation(new Text("row_id"))
                           .at()
                           .family(cf.name)
+                          .qualifier(Array.empty[Byte])
                           .put(encode(record, cfIdx, cf)))
+                   }
                 }
            }
         }
     }
 
     def commit(): WriterCommitMessage = {
+        // println("MARKUS COMMIT")
         batchWriter.flush()
         batchWriter.close()
 
@@ -101,6 +114,7 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     }
 
     def abort(): Unit = {
+        // println("MARKUS ABORT")
         batchWriter.close()
         client.close()
     }
