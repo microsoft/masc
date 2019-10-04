@@ -233,7 +233,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
     DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
 
     // execute ML model
-    scala.collection.Iterator<Row> iter = resultDataFrame.collect().iterator();
+    scala.collection.Iterator<Row> iter = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
     Row row = iter.next();
 
     // Helpful when debugging
