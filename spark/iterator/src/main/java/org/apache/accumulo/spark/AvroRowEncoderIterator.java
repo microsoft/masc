@@ -132,8 +132,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
       throws IOException {
-    Files.write(Paths.get("/tmp/my.log"), (options.toString() + "\n").getBytes(), StandardOpenOption.CREATE,
-        StandardOpenOption.APPEND);
+    // Files.write(Paths.get("/tmp/my.log"), (options.toString() + "\n").getBytes(), StandardOpenOption.CREATE,
+        // StandardOpenOption.APPEND);
 
     this.sourceIter = source;
 

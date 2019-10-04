@@ -82,8 +82,8 @@ class AccumuloInputPartitionReader(tableName: String,
     avroIterator.addOption("filter", filterInJuel.get)
 
   // forward options
-  avroIterator.addOption("mleap.bundle", properties.getProperty("mleap.bundle", ""))
-  avroIterator.addOption("mleap.filter", properties.getProperty("mleap.filter", ""))
+  avroIterator.addOption("mleap", properties.getProperty("mleap", ""))
+  avroIterator.addOption("mleapfilter", properties.getProperty("mleapfilter", ""))
 
   scanner.addScanIterator(avroIterator)
 
