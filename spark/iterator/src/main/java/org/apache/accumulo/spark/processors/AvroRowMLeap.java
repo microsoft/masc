@@ -56,7 +56,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
   /**
    * Key for mleap bundle option.
    */
-  public static final String MLEAP_BUNDLE = "mleap.bundle";
+  public static final String MLEAP_BUNDLE = "mleap";
 
   public static AvroRowMLeap create(Map<String, String> options) throws IOException {
     String mleapBundleBase64 = options.get(MLEAP_BUNDLE);

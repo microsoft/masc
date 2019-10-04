@@ -78,7 +78,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   /**
    * Key for filter option.
    */
-  public static final String MLEAP_FILTER = "mleap.filter";
+  public static final String MLEAP_FILTER = "mleapfilter";
 
   /**
    * A custom and fast implementation of an Avro record.
