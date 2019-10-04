@@ -15,13 +15,19 @@ import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
 import java.util.HashMap;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.io.IOException;
 
 public class ReadIT {
 
       @Test
-      public void testDataReading() {
+      public void testDataReading() throws IOException {
+            // copy file
+            Files.copy(Paths.get("target/accumulo-spark-iterator-1.0.0-SNAPSHOT.jar"), Paths.get(
+                        "target/accumulo2-maven-plugin/spark-connector-instance/lib/ext/accumulo-spark-iterator-1.0.0-SNAPSHOT.jar"));
+
             File propsFile = new File("target/accumulo2-maven-plugin/spark-connector-instance");
             Properties props = MiniAccumuloCluster.getClientProperties(propsFile);
             // AccumuloClient client = Accumulo.newClient().from(props).build();
@@ -44,6 +50,8 @@ public class ReadIT {
             sampleDf.show(10);
             sampleDf.printSchema();
 
+            propMap.put("rowkey", "key");
+            propMap.put("model", "MoDEL!");
             sampleDf.write().format("org.apache.accumulo").options(propMap).save();
 
             // read from accumulo

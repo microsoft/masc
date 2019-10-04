@@ -43,7 +43,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   var filters = Array.empty[Filter]
 
-  val rowKeyColumn = options.get("rowKey").orElse("rowKey")
+  val rowKeyColumn = options.get("rowkey").orElse("rowkey")
 
   // needs to be nullable so that Avro doesn't barf when we want to add another column
   private var requiredSchema = schema.add(rowKeyColumn, DataTypes.StringType, true)

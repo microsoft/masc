@@ -20,6 +20,7 @@ package org.apache.accumulo
 import org.apache.accumulo.core.client.Accumulo
 import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.core.client.lexicoder._
+import org.apache.accumulo.core.security.ColumnVisibility
 import org.apache.hadoop.io.Text
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.catalyst.InternalRow
@@ -36,17 +37,21 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     // val batchWriter = new TabletServerBatchWriter(context, new BatchWriterConfig)
     // private val tableId = Tables.getTableId(context, tableName)
 
+    private val rowKeyIdx = schema.fieldIndex(properties.getProperty("rowkey"))
+
     private val client = Accumulo.newClient().from(properties).build()
     // create table if it's not there
-    if (!client.tableOperations().exists(tableName)) 
-        client.tableOperations().create(tableName);
+    if (!client.tableOperations.exists(tableName)) 
+        client.tableOperations.create(tableName)
     
+    // TODO: new BatchWriterConfig().setMaxWriteThreads(numThreads).setMaxMemory(batchMemory)
     private val batchWriter = client.createBatchWriter(tableName)
 
     private val doubleEncoder = new DoubleLexicoder
     private val floatEncoder = new FloatLexicoder
     private val longEncoder = new LongLexicoder
     private val intEncoder = new IntegerLexicoder
+    private val stringEncoder = new StringLexicoder
 
     private val doubleAccessor = InternalRow.getAccessor(DoubleType)
     private val floatAccessor = InternalRow.getAccessor(FloatType)
@@ -66,6 +71,9 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
 
     private val structAccessor = InternalRow.getAccessor(new StructType())
 
+    // TODO: expose this as another input column
+    // private val columnVisibilityEmpty = new ColumnVisibility
+
     def write(record: InternalRow): Unit = {
         // println(s"writing record: ${record}")
 
@@ -73,50 +81,51 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
         schema.fields.zipWithIndex.foreach {
             // loop through fields
             case (cf: StructField, cfIdx: Int) => {
+                if (cfIdx != rowKeyIdx) {
+                    // check which types we have top-level
+                    cf.dataType match {
+                       case ct: StructType => {
+                            val nestedRecord = structAccessor(record, cfIdx).asInstanceOf[InternalRow]
 
-                // check which types we have top-level
-                cf.dataType match {
-                   case ct: StructType => {
-                        val nestedRecord = structAccessor(record, cfIdx).asInstanceOf[InternalRow]
+                            ct.fields.zipWithIndex.foreach {
+                                case (cq: StructField, cqIdx) => {
+                                    val mutation = new Mutation(stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes)
+                                    mutation.put(stringEncoder.encode(cf.name), stringEncoder.encode(cq.name), encode(nestedRecord, cqIdx, cq))
+                                    batchWriter.addMutation(mutation)
+                                    batchWriter.flush
+                                }
+                            }
+                       }
+                       case _ => { 
+                           val bytes = encode(record, cfIdx, cf) 
+                        //    println(s"\twriting row ${cf.name} with bytes: ${bytes.length}")
 
-                        // TODO: use configurable row_id field
-                        ct.fields.zipWithIndex.foreach {
-                            case (cq: StructField, cqIdx) => batchWriter.addMutation(new Mutation(new Text("row_id"))
-                                .at()
-                                .family(cf.name)
-                                .qualifier(cq.name)
-                                .put(encode(nestedRecord, cqIdx, cq)))
-
-                        }
-                   }
-                   case _ => { 
-                       val bytes = encode(record, cfIdx, cf) 
-                    //    println(s"\twriting row ${cf.name} with bytes: ${bytes.length}")
-
-                       batchWriter.addMutation(new Mutation(new Text("row_id"))
-                          .at()
-                          .family(cf.name)
-                          .qualifier(Array.empty[Byte])
-                          .put(encode(record, cfIdx, cf)))
-                   }
+                           val mutation = new Mutation(stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes)
+                           mutation.put(stringEncoder.encode(cf.name), Array.empty[Byte], encode(record, cfIdx, cf))
+                           batchWriter.addMutation(mutation)
+                        //    batchWriter.flush
+                       }
+                    }
                 }
-           }
+            }
         }
+
+        // batchWriter.flush
     }
 
     def commit(): WriterCommitMessage = {
         // println("MARKUS COMMIT")
-        batchWriter.flush()
-        batchWriter.close()
+        // batchWriter.flush()
+        batchWriter.close
 
-        client.close()
+        client.close
         WriteSucceeded
     }
 
     def abort(): Unit = {
         // println("MARKUS ABORT")
-        batchWriter.close()
-        client.close()
+        batchWriter.close
+        client.close
     }
 
     object WriteSucceeded extends WriterCommitMessage
