@@ -26,6 +26,7 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.writer.{DataWriter, WriterCommitMessage}
 import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
+import org.apache.spark.unsafe.types.UTF8String 
 
 class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode, properties: java.util.Properties)
   extends DataWriter[InternalRow] {
@@ -42,7 +43,6 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     private val floatEncoder = new FloatLexicoder
     private val longEncoder = new LongLexicoder
     private val intEncoder = new IntegerLexicoder
-    private val stringEncoder = new StringLexicoder
 
     private val doubleAccessor = InternalRow.getAccessor(DoubleType)
     private val floatAccessor = InternalRow.getAccessor(FloatType)
@@ -56,7 +56,7 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
             case FloatType => floatEncoder.encode(floatAccessor(record, fieldIdx).asInstanceOf[Float])
             case LongType => longEncoder.encode(longAccessor(record, fieldIdx).asInstanceOf[Long])
             case IntegerType => intEncoder.encode(intAccessor(record, fieldIdx).asInstanceOf[Integer])
-            case StringType => stringEncoder.encode(stringAccessor(record, fieldIdx).asInstanceOf[String])
+            case StringType => stringAccessor(record, fieldIdx).asInstanceOf[UTF8String].getBytes
         }
     }
 
