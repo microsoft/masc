@@ -107,7 +107,7 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
                         val encoder = getEncoder(cfIdx, cf)
 
                         (rowKey: Array[Byte], record: InternalRow) => {
-                            println(s"\twriting row ${cf.name}")
+                            // println(s"\twriting row ${cf.name}")
 
                             // not using the fluent interface to provide backward compat
                             val mutation = new Mutation(rowKey)

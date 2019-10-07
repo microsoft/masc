@@ -18,6 +18,8 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+
+import java.util.Base64;
 import java.util.HashMap;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -29,6 +31,16 @@ import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import java.util.Map.Entry;
 import org.apache.spark.ml.feature.RegexTokenizer;
+import org.apache.spark.ml.feature.CountVectorizer;
+import org.apache.spark.ml.classification.LogisticRegression;
+import org.apache.spark.ml.classification.LogisticRegressionModel;
+import org.apache.spark.ml.Pipeline;
+import org.apache.spark.ml.PipelineStage;
+import org.apache.spark.ml.PipelineModel;
+import org.apache.spark.ml.mleap.SparkUtil;
+import ml.combust.bundle.BundleFile;
+import ml.combust.bundle.serializer.SerializationFormat;
+import ml.combust.mleap.spark.SimpleSparkSerializer;
 
 public class ReadIT {
 
@@ -80,18 +92,29 @@ public class ReadIT {
             sampleDf.show(10);
             sampleDf.printSchema();
 
+            // build SparkML pipeline
+            RegexTokenizer tokenizer = new RegexTokenizer().setGaps(false).setPattern("\\p{L}+").setInputCol("text")
+                        .setOutputCol("words");
+            CountVectorizer vectorizer = new CountVectorizer().setInputCol("words").setOutputCol("features");
+            LogisticRegression lr = new LogisticRegression().setMaxIter(1);
 
-            RegexTokenizer tokenizer = new RegexTokenizer()
-                  .setGaps(false)
-                  .setPattern("\\p{L}+")
-                  .setInput
-            
-            gaps=False, pattern='\\p{L}+', inputCol='text', outputCol='words')
-vectorizer = CountVectorizer(inputCol='words', outputCol='features')
-lr = LogisticRegression(maxIter=1, regParam=0.2, elasticNetParam=0)
-pipeline = Pipeline(stages=[tokenizer, vectorizer, lr])
+            Pipeline pipeline = new Pipeline().setStages(new PipelineStage[] { tokenizer, vectorizer, lr });
 
+            // train the model
+            PipelineModel model = pipeline.fit(sampleDf);
 
+            File tempModel = File.createTempFile("mleap", ".zip");
+            tempModel.delete();
+            // tempModel.deleteOnExit(); // just in case something goes wrong
+
+            System.out.println("PATH: " + tempModel.toPath().toUri().toString());
+
+            new SimpleSparkSerializer().serializeToBundle(model, "jar:" + tempModel.toPath().toUri().toString(),
+                        model.transform(sampleDf));
+
+            // TODO: read back, base64 encode and pass to datasource
+            byte[] modelByteArray = Files.readAllBytes(tempModel.toPath());
+            String modelBase64Encoded = Base64.getEncoder().encodeToString(modelByteArray);
 
             propMap.put("rowkey", "key");
             sampleDf.write().format("org.apache.accumulo").options(propMap).save();
@@ -107,7 +130,7 @@ pipeline = Pipeline(stages=[tokenizer, vectorizer, lr])
             // }
             // }
 
-            propMap.put("mleap.bundle", "asdfasdfasdf");
+            propMap.put("mleap", modelBase64Encoded);
 
             // read from accumulo
             StructType schema = new StructType(

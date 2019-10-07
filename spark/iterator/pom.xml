@@ -137,7 +137,6 @@
                     <excludes>
                       <exclude>org.apache.accumulo:accumulo-native</exclude>
                       <exclude>org.apache.hadoop:*</exclude>
-                      <exclude>org.apache.spark:*</exclude>
                     </excludes>
                   </artifactSet>
                   <relocations>
