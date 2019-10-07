@@ -46,7 +46,9 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
   val rowKeyColumn = options.get("rowkey").orElse("rowkey")
 
   // needs to be nullable so that Avro doesn't barf when we want to add another column
-  private var requiredSchema = schema.add(rowKeyColumn, DataTypes.StringType, nullable = true)
+  private var requiredSchema = StructType(schema.add(rowKeyColumn, DataTypes.StringType, nullable = true).fields ++
+    // add any output fields we find in a mleap pipeline
+    MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse("")))
 
   private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
   private val jsonSchema = AvroUtil.catalystSchemaToJson(schemaWithoutRowKey)

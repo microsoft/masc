@@ -27,6 +27,9 @@
   <version>1.0.0-SNAPSHOT</version>
   <name>Apache Spark Connector for Accumulo Iterator</name>
   <properties>
+    <encoding>UTF-8</encoding>
+    <jackson.version>2.6.7</jackson.version>
+    <jackson.databind.version>2.6.7.1</jackson.databind.version>
     <accumulo.version>2.0.0</accumulo.version>
   </properties>
   <dependencies>
@@ -39,7 +42,22 @@
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
-      <version>1.9.0</version>
+      <version> 1.8.2</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <version>${jackson.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson.databind.version}</version>
+    </dependency>
+     <dependency>
+      <groupId>com.fasterxml.jackson.core</groupId>
+      <artifactId>jackson-annotations</artifactId>
+      <version>${jackson.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -76,6 +94,26 @@
       <artifactId>spark-mllib-local_2.11</artifactId>
       <version>2.4.3</version>
     </dependency>
+    <!--
+    <dependency>
+        <groupId>ml.combust.mleap</groupId>
+        <artifactId>mleap-spark_2.11</artifactId>
+        <version>0.14.0</version>
+      <scope>test</scope>
+    </dependency>   
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-core_2.11</artifactId>
+      <version>2.4.3</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.spark</groupId>
+      <artifactId>spark-mllib_2.11</artifactId>
+      <version>2.4.3</version>
+      <scope>test</scope>
+    </dependency>
+    -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
@@ -106,8 +144,8 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.8.1</version>
                 <configuration>
-                    <source>9</source>
-                    <target>9</target>
+                    <source>1.8</source>
+                    <target>1.8</target>
                 </configuration>
             </plugin>
             <plugin>

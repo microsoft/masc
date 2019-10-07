@@ -86,9 +86,6 @@ class AccumuloInputPartitionReader(tableName: String,
   avroIterator.addOption("mleapfilter", properties.getProperty("mleapfilter", ""))
 
   scanner.addScanIterator(avroIterator)
-  if (properties.containsKey("mleap")) {
-    avroIterator.addOption("mleap", properties.getProperty("mleap"));
-  }
 
   // TODO: support additional user-supplied iterators
   private val scannerIterator = scanner.iterator()

@@ -132,8 +132,10 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
       throws IOException {
-    // Files.write(Paths.get("/tmp/my.log"), (options.toString() + "\n").getBytes(), StandardOpenOption.CREATE,
-        // StandardOpenOption.APPEND);
+    // try {
+    // Files.write(Paths.get("/tmp/my.log"), ("init\n").getBytes(),
+    // StandardOpenOption.CREATE,
+    // StandardOpenOption.APPEND);
 
     this.sourceIter = source;
 
@@ -178,6 +180,15 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
     // setup binary serializer
     this.serializer = new AvroRowSerializer(schema);
+    // } catch (Throwable e) {
+    // StringWriter sw = new StringWriter();
+    // e.printStackTrace(new PrintWriter(sw));
+    // Files.write(Paths.get("/tmp/my.log"), (e.getMessage().toString() + "\n" +
+    // sw.toString()).getBytes(),
+    // StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+    // throw e;
+    // }
   }
 
   @Override
@@ -194,6 +205,12 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   }
 
   private void encodeRow() throws IOException {
+    // try {
+
+    // Files.write(Paths.get("/tmp/my.log"), ("encodeRow\n").getBytes(),
+    // StandardOpenOption.CREATE,
+    // StandardOpenOption.APPEND);
+
     byte[] rowValue;
     Text currentRow;
 
@@ -245,6 +262,16 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     // null doesn't seem to be allowed for cf/cq...
     topKey = new Key(currentRow, new Text("v"), new Text(""));
     topValue = new Value(rowValue);
+
+    // } catch (Throwable e) {
+    // StringWriter sw = new StringWriter();
+    // e.printStackTrace(new PrintWriter(sw));
+    // Files.write(Paths.get("/tmp/my.log"), (e.getMessage().toString() + "\n" +
+    // sw.toString()).getBytes(),
+    // StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+
+    // throw e;
+    // }
   }
 
   private byte[] endRow(Text rowKey) throws IOException {

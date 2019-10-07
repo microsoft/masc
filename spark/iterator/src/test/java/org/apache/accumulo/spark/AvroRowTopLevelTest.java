@@ -62,8 +62,6 @@ public class AvroRowTopLevelTest {
 
     // cf1.cq1 nested field
     Field f00 = f0.schema().getFields().get(0);
-    assertTrue(f00.schema().isUnion());
-    assertTrue(f00.schema().isNullable());
 
     // nullable long
     assertEquals(2, f00.schema().getTypes().size());
@@ -74,8 +72,6 @@ public class AvroRowTopLevelTest {
     Field f1 = schema.getFields().get(1);
 
     // nullable double
-    assertTrue(f1.schema().isUnion());
-    assertTrue(f1.schema().isNullable());
     assertEquals(2, f1.schema().getTypes().size());
     assertEquals(Type.DOUBLE, f1.schema().getTypes().get(1).getType());
   }

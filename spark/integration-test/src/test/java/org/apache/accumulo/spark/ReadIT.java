@@ -1,5 +1,8 @@
 package org.apache.accumulo.spark;
 
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertTrue;
+
 import java.io.File;
 import java.util.Properties;
 import org.apache.accumulo.minicluster.MiniAccumuloCluster;
@@ -21,6 +24,7 @@ import org.apache.spark.sql.types.StructType;
 
 import java.util.Base64;
 import java.util.HashMap;
+import java.util.List;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -30,6 +34,8 @@ import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
 import java.util.Map.Entry;
+import java.util.stream.Collectors;
+
 import org.apache.spark.ml.feature.RegexTokenizer;
 import org.apache.spark.ml.feature.CountVectorizer;
 import org.apache.spark.ml.classification.LogisticRegression;
@@ -79,7 +85,11 @@ public class ReadIT {
 
             propMap.put("table", "sample_table");
 
-            SparkConf conf = new SparkConf().setMaster("local").setAppName("AccumuloIntegrationTest");
+            SparkConf conf = new SparkConf()
+                        // local instance
+                        .setMaster("local").setAppName("AccumuloIntegrationTest")
+                        // speed up, but still keep parallelism
+                        .set("keyspark.sql.shuffle.partitions", "2");
 
             SparkSession sc = SparkSession.builder().config(conf).getOrCreate();
 
@@ -106,8 +116,6 @@ public class ReadIT {
             File tempModel = File.createTempFile("mleap", ".zip");
             tempModel.delete();
             // tempModel.deleteOnExit(); // just in case something goes wrong
-
-            System.out.println("PATH: " + tempModel.toPath().toUri().toString());
 
             new SimpleSparkSerializer().serializeToBundle(model, "jar:" + tempModel.toPath().toUri().toString(),
                         model.transform(sampleDf));
@@ -140,6 +148,14 @@ public class ReadIT {
             Dataset<Row> accumuloDf = sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
 
             accumuloDf.show(10);
+
+            // validate schema
+            assertEquals(5, accumuloDf.schema().fields().length);
+
+            // validate predictions come back
+            List<Double> predictions = accumuloDf.select("prediction").collectAsList().stream().map(r -> r.getDouble(0))
+                        .collect(Collectors.toList());
+            assertTrue(predictions.containsAll(List.of(0.0, 1.0, 0.0)));
 
       }
 }

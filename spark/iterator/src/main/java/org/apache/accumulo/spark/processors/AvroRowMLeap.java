@@ -19,7 +19,13 @@ package org.apache.accumulo.spark.processors;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Base64;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 import org.apache.accumulo.spark.record.RowBuilderField;
@@ -47,6 +53,7 @@ import ml.combust.mleap.runtime.frame.Transformer;
 import ml.combust.mleap.runtime.javadsl.BundleBuilder;
 import ml.combust.mleap.runtime.javadsl.ContextBuilder;
 import scala.collection.JavaConverters;
+import scala.collection.Seq;
 import scala.collection.mutable.WrappedArray;
 
 /**
@@ -87,9 +94,8 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     private int avroFieldIndex;
 
-    public OutputField(RowBuilderField field, int outputFieldIndex) {
+    public OutputField(RowBuilderField field) {
       this.field = field;
-      this.outputFieldIndex = outputFieldIndex;
     }
 
     public RowBuilderField getField() {
@@ -111,6 +117,11 @@ public class AvroRowMLeap implements AvroRowConsumer {
     public int getAvroFieldIndex() {
       return avroFieldIndex;
     }
+
+    @Override
+    public String toString() {
+      return String.format("%s: %d <- %d", field.getColumnFamily(), outputFieldIndex, avroFieldIndex);
+    }
   }
 
   private List<OutputField> outputFields;
@@ -131,38 +142,44 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     // convert the output schema and remember the field indices
     StructType outputSchema = this.transformer.outputSchema();
+
     this.outputFields = JavaConverters.seqAsJavaListConverter(outputSchema.fields()).asJava().stream()
         // main loop
         .map(field -> {
           DataType dt = field.dataType();
           String name = field.name();
 
-          int idx = (int) outputSchema.indexOf(name).get();
-
           if (!(dt instanceof ScalarType))
             return null;
 
           ScalarType scalarType = (ScalarType) dt;
           if (BasicType.Boolean$.MODULE$.equals(scalarType.base()))
-            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Boolean.toString(), name), idx);
+            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Boolean.toString(), name));
 
           if (BasicType.Double$.MODULE$.equals(scalarType.base()))
-            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Double.toString(), name), idx);
+            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Double.toString(), name));
 
           if (BasicType.Float$.MODULE$.equals(scalarType.base()))
-            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Float.toString(), name), idx);
+            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Float.toString(), name));
 
           if (BasicType.Int$.MODULE$.equals(scalarType.base()))
-            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Integer.toString(), name), idx);
+            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Integer.toString(), name));
 
           if (BasicType.Short$.MODULE$.equals(scalarType.base()))
-            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Integer.toString(), name), idx);
+            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Integer.toString(), name));
 
           if (BasicType.Long$.MODULE$.equals(scalarType.base()))
-            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Long.toString(), name), idx);
+            return new OutputField(new RowBuilderField(name, null, RowBuilderType.Long.toString(), name));
 
           return null;
-        }).filter(Objects::nonNull).collect(Collectors.toList());
+        })
+        // drop non-supported
+        .filter(Objects::nonNull)
+        // configure non-nullable to be compatible with MLeap to Spark type conversation
+        .map(field -> {
+          field.getField().setNullable(false);
+          return field;
+        }).collect(Collectors.toList());
   }
 
   @Override
@@ -209,9 +226,17 @@ public class AvroRowMLeap implements AvroRowConsumer {
                 Arrays.stream(new Row[] { new ArrayRow(WrappedArray.make(this.mleapValues)) }).iterator())
             .asScala().toSeq());
 
+    // generate the final schema
+    StructType outputSchema = this.transformer
+        // could also use scala.collection.Seq$.MODULE$.empty() but we'd get a type
+        // warning
+        .transform(new DefaultLeapFrame(this.mleapSchema, scala.collection.Seq$.MODULE$.<Row>newBuilder().result()))
+        .get().schema();
+
     for (OutputField field : this.outputFields) {
       // correct output index by the number of fields we input
-      field.setOutputFieldIndex(field.getOutputFieldIndex() + this.mleapAvroFields.length);
+      field.setOutputFieldIndex((int) outputSchema.indexOf(field.field.getColumnFamily()).get());
+
       // link mleap dataframe field index with avro field index
       field.setAvroFieldIndex(schema.getField(field.getField().getColumnFamily()).pos());
     }

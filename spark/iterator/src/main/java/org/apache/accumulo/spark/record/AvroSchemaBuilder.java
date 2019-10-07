@@ -41,29 +41,51 @@ public class AvroSchemaBuilder {
     if (field.getFilterVariableName() != null && field.getFilterVariableName().length() > 0)
       fieldBuilder = fieldBuilder.aliases(field.getFilterVariableName());
 
-    SchemaBuilder.BaseTypeBuilder<SchemaBuilder.FieldAssembler<Schema>> intermediate = fieldBuilder
+    SchemaBuilder.FieldTypeBuilder<Schema> intermediate = fieldBuilder
         // encode rowBuilderType so we can only operator on schema
         .prop(ROWBUILDERTYPE_PROP, type.name())
         // all fields are optional
-        .type().optional();
+        .type();
 
-    switch (type) {
+    if (field.isNullable()) {
+      SchemaBuilder.BaseTypeBuilder<SchemaBuilder.FieldAssembler<Schema>> optionalType = intermediate.optional();
+      switch (type) {
       case String:
-        return intermediate.stringType();
+        return optionalType.stringType();
       case Long:
-        return intermediate.longType();
+        return optionalType.longType();
       case Integer:
-        return intermediate.intType();
+        return optionalType.intType();
       case Double:
-        return intermediate.doubleType();
+        return optionalType.doubleType();
       case Float:
-        return intermediate.floatType();
+        return optionalType.floatType();
       case Boolean:
-        return intermediate.booleanType();
+        return optionalType.booleanType();
       case Bytes:
-        return intermediate.bytesType();
+        return optionalType.bytesType();
       default:
         throw new IllegalArgumentException("Unsupported type '" + type + "'");
+      }
+    } else {
+      switch (type) {
+      case String:
+        return intermediate.stringType().noDefault();
+      case Long:
+        return intermediate.longType().noDefault();
+      case Integer:
+        return intermediate.intType().noDefault();
+      case Double:
+        return intermediate.doubleType().noDefault();
+      case Float:
+        return intermediate.floatType().noDefault();
+      case Boolean:
+        return intermediate.booleanType().noDefault();
+      case Bytes:
+        return intermediate.bytesType().noDefault();
+      default:
+        throw new IllegalArgumentException("Unsupported type '" + type + "'");
+      }
     }
   }
 

@@ -28,6 +28,7 @@ public class RowBuilderField {
   private String columnQualifier;
   private String type;
   private String filterVariableName;
+  private boolean nullable = true;
 
   public RowBuilderField() {
   }
@@ -41,6 +42,20 @@ public class RowBuilderField {
 
   public RowBuilderType getRowBuilderType() {
     return RowBuilderType.valueOfIgnoreCase(this.type);
+  }
+
+  /**
+   * @return the nullable
+   */
+  public boolean isNullable() {
+    return nullable;
+  }
+
+  /**
+   * @param nullable the nullable to set
+   */
+  public void setNullable(boolean nullable) {
+    this.nullable = nullable;
   }
 
   /**
