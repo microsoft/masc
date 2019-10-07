@@ -18,6 +18,8 @@
 package org.apache.accumulo.spark;
 
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -45,6 +47,7 @@ import org.apache.accumulo.spark.record.RowBuilderCellConsumer;
 import org.apache.accumulo.spark.record.RowBuilderField;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -80,6 +83,17 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
    * Key for filter option.
    */
   public static final String MLEAP_FILTER = "mleapfilter";
+
+  /**
+   * Key for pruned columns.
+   */
+  public static final String PRUNED_COLUMNS = "prunedcolumns";
+
+  /**
+   * Key for path to exception log file. Can be handy if the logs are not
+   * populated.
+   */
+  public static final String EXCEPTION_LOG_FILE = "exceptionlogfile";
 
   /**
    * A custom and fast implementation of an Avro record.
@@ -118,6 +132,21 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
    */
   private Value topValue = null;
 
+  private String exceptionLogFile;
+
+  private void logException(Throwable ex) {
+    if (this.exceptionLogFile != null) {
+      try {
+        StringWriter sw = new StringWriter();
+        ex.printStackTrace(new PrintWriter(sw));
+        Files.write(Paths.get(this.exceptionLogFile), (ex.getMessage().toString() + "\n" + sw.toString()).getBytes(),
+            StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+      } catch (IOException e) {
+        // swallow
+      }
+    }
+  }
+
   @Override
   public boolean validateOptions(Map<String, String> options) {
     try {
@@ -132,63 +161,55 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   @Override
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
       throws IOException {
-    // try {
-    // Files.write(Paths.get("/tmp/my.log"), ("init\n").getBytes(),
-    // StandardOpenOption.CREATE,
-    // StandardOpenOption.APPEND);
+    try {
+      this.sourceIter = source;
 
-    this.sourceIter = source;
+      // keep the log file destination around
+      this.exceptionLogFile = options.get(EXCEPTION_LOG_FILE);
+      if (StringUtils.isEmpty(this.exceptionLogFile))
+        this.exceptionLogFile = null;
 
-    // build the lookup table for the cells we care for from the user-supplied JSON
-    RowBuilderField[] schemaFields = new ObjectMapper().readValue(options.get(SCHEMA), RowBuilderField[].class);
+      // build the lookup table for the cells we care for from the user-supplied JSON
+      RowBuilderField[] schemaFields = new ObjectMapper().readValue(options.get(SCHEMA), RowBuilderField[].class);
 
-    // union( user-supplied fields + computed fields )
-    ArrayList<RowBuilderField> allFields = new ArrayList<>(Arrays.asList(schemaFields));
+      // union( user-supplied fields + computed fields )
+      ArrayList<RowBuilderField> allFields = new ArrayList<>(Arrays.asList(schemaFields));
 
-    // initialize compute columns (only definitions are initialized, need to wait
-    // for schema)
-    // if (computedColumns != null)
-    // allFields.addAll(computedColumns.getSchemaFields());
+      this.processors = Arrays.stream(new AvroRowConsumer[] {
+          // compute additional columns
+          AvroRowComputedColumns.create(options),
+          // filter row
+          AvroRowFilter.create(options, FILTER),
+          // apply ML model
+          AvroRowMLeap.create(options),
+          // filter post mleap
+          AvroRowFilter.create(options, MLEAP_FILTER) })
+          // compute & filter are optional depending on input
+          .filter(Objects::nonNull).collect(Collectors.toList());
 
-    this.processors = Arrays.stream(new AvroRowConsumer[] {
-        // compute additional columns
-        AvroRowComputedColumns.create(options),
-        // filter row
-        AvroRowFilter.create(options, FILTER),
-        // apply ML model
-        AvroRowMLeap.create(options),
-        // filter post mleap
-        AvroRowFilter.create(options, MLEAP_FILTER) })
-        // compute & filter are optional depending on input
-        .filter(Objects::nonNull).collect(Collectors.toList());
+      // add all additional fields the consumers want to output
+      allFields
+          .addAll(this.processors.stream().flatMap(f -> f.getSchemaFields().stream()).collect(Collectors.toList()));
 
-    // add all additional fields the consumers want to output
-    allFields.addAll(this.processors.stream().flatMap(f -> f.getSchemaFields().stream()).collect(Collectors.toList()));
+      // build the AVRO schema
+      Schema schema = AvroSchemaBuilder.buildSchema(allFields);
 
-    // build the AVRO schema
-    Schema schema = AvroSchemaBuilder.buildSchema(allFields);
+      // initialize the record builder
+      this.rootRecord = new AvroFastRecord(schema);
 
-    // initialize the record builder
-    this.rootRecord = new AvroFastRecord(schema);
+      // provide fast lookup map
+      this.cellToColumnMap = AvroFastRecord.createCellToFieldMap(rootRecord);
 
-    // provide fast lookup map
-    this.cellToColumnMap = AvroFastRecord.createCellToFieldMap(rootRecord);
+      // feed the final schema back
+      for (AvroRowConsumer consumer : this.processors)
+        consumer.initialize(schema);
 
-    // feed the final schema back
-    for (AvroRowConsumer consumer : this.processors)
-      consumer.initialize(schema);
-
-    // setup binary serializer
-    this.serializer = new AvroRowSerializer(schema);
-    // } catch (Throwable e) {
-    // StringWriter sw = new StringWriter();
-    // e.printStackTrace(new PrintWriter(sw));
-    // Files.write(Paths.get("/tmp/my.log"), (e.getMessage().toString() + "\n" +
-    // sw.toString()).getBytes(),
-    // StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-
-    // throw e;
-    // }
+      // setup binary serializer
+      this.serializer = new AvroRowSerializer(schema, options.get(PRUNED_COLUMNS));
+    } catch (Throwable e) {
+      logException(e);
+      throw e;
+    }
   }
 
   @Override
@@ -205,73 +226,63 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   }
 
   private void encodeRow() throws IOException {
-    // try {
+    try {
+      byte[] rowValue;
+      Text currentRow;
 
-    // Files.write(Paths.get("/tmp/my.log"), ("encodeRow\n").getBytes(),
-    // StandardOpenOption.CREATE,
-    // StandardOpenOption.APPEND);
-
-    byte[] rowValue;
-    Text currentRow;
-
-    do {
-      boolean foundConsumer = false;
       do {
-        // no more input row?
-        if (!sourceIter.hasTop())
-          return;
+        boolean foundConsumer = false;
+        do {
+          // no more input row?
+          if (!sourceIter.hasTop())
+            return;
 
-        currentRow = new Text(sourceIter.getTopKey().getRow());
+          currentRow = new Text(sourceIter.getTopKey().getRow());
 
-        ByteSequence currentFamily = null;
-        Map<ByteSequence, RowBuilderCellConsumer> currentQualifierMapping = null;
+          ByteSequence currentFamily = null;
+          Map<ByteSequence, RowBuilderCellConsumer> currentQualifierMapping = null;
 
-        // start of new record
-        this.rootRecord.clear();
+          // start of new record
+          this.rootRecord.clear();
 
-        while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
-          Key sourceTopKey = sourceIter.getTopKey();
+          while (sourceIter.hasTop() && sourceIter.getTopKey().getRow().equals(currentRow)) {
+            Key sourceTopKey = sourceIter.getTopKey();
 
-          // different column family?
-          if (currentFamily == null || !sourceTopKey.getColumnFamilyData().equals(currentFamily)) {
-            currentFamily = sourceTopKey.getColumnFamilyData();
-            currentQualifierMapping = cellToColumnMap.get(currentFamily);
-          }
-
-          // skip if no mapping found
-          if (currentQualifierMapping != null) {
-            RowBuilderCellConsumer consumer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
-            if (consumer != null) {
-              foundConsumer = true;
-
-              Value value = sourceIter.getTopValue();
-
-              consumer.consume(sourceTopKey, value);
+            // different column family?
+            if (currentFamily == null || !sourceTopKey.getColumnFamilyData().equals(currentFamily)) {
+              currentFamily = sourceTopKey.getColumnFamilyData();
+              currentQualifierMapping = cellToColumnMap.get(currentFamily);
             }
+
+            // skip if no mapping found
+            if (currentQualifierMapping != null) {
+              RowBuilderCellConsumer consumer = currentQualifierMapping.get(sourceTopKey.getColumnQualifierData());
+              if (consumer != null) {
+                foundConsumer = true;
+
+                Value value = sourceIter.getTopValue();
+
+                consumer.consume(sourceTopKey, value);
+              }
+            }
+
+            sourceIter.next();
           }
+        } while (!foundConsumer); // skip rows until we found a single feature
 
-          sourceIter.next();
-        }
-      } while (!foundConsumer); // skip rows until we found a single feature
+        // produce final row
+        rowValue = endRow(currentRow);
+        // skip if null
+      } while (rowValue == null);
 
-      // produce final row
-      rowValue = endRow(currentRow);
-      // skip if null
-    } while (rowValue == null);
+      // null doesn't seem to be allowed for cf/cq...
+      topKey = new Key(currentRow, new Text("v"), new Text(""));
+      topValue = new Value(rowValue);
 
-    // null doesn't seem to be allowed for cf/cq...
-    topKey = new Key(currentRow, new Text("v"), new Text(""));
-    topValue = new Value(rowValue);
-
-    // } catch (Throwable e) {
-    // StringWriter sw = new StringWriter();
-    // e.printStackTrace(new PrintWriter(sw));
-    // Files.write(Paths.get("/tmp/my.log"), (e.getMessage().toString() + "\n" +
-    // sw.toString()).getBytes(),
-    // StandardOpenOption.CREATE, StandardOpenOption.APPEND);
-
-    // throw e;
-    // }
+    } catch (Throwable e) {
+      logException(e);
+      throw e;
+    }
   }
 
   private byte[] endRow(Text rowKey) throws IOException {
@@ -342,11 +353,12 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   public SortedKeyValueIterator<Key, Value> deepCopy(IteratorEnvironment env) {
     AvroRowEncoderIterator copy = new AvroRowEncoderIterator();
 
-    copy.serializer = new AvroRowSerializer(this.rootRecord.getSchema());
+    copy.serializer = new AvroRowSerializer(this.rootRecord.getSchema(), this.serializer.getPrunedColumns());
     copy.rootRecord = new AvroFastRecord(this.rootRecord.getSchema());
     copy.cellToColumnMap = AvroFastRecord.createCellToFieldMap(copy.rootRecord);
     copy.processors = this.processors.stream().map(AvroRowConsumer::clone).collect(Collectors.toList());
     copy.sourceIter = sourceIter.deepCopy(env);
+    copy.exceptionLogFile = this.exceptionLogFile;
 
     return copy;
   }

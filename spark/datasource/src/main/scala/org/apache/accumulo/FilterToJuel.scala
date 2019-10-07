@@ -25,18 +25,10 @@ case class AccumuloFilterResult(serializedFilter: String,
 
 class FilterToJuel(val attributeToVariableMapping: Map[String, String], val rowKeyColumn: String = "rowKey") {
 	def mapAttribute(attribute: String): String = {
-		if (attribute == rowKeyColumn) {
+		if (attribute == rowKeyColumn)
 			"rowKey"
-		}
-		else {
-			val opt = attributeToVariableMapping.get(attribute)
-
-			if (opt.isEmpty) {
-				println(s"UNABLE TO MAP attribute ${attribute}")
-			}
-
-			opt.get
-		}
+		else
+			attributeToVariableMapping.getOrElse(attribute, attribute)
 	}
 
 	def serializeValue(value: Any): String = {

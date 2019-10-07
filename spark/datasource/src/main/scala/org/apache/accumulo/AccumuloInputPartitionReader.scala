@@ -81,9 +81,12 @@ class AccumuloInputPartitionReader(tableName: String,
   if (filterInJuel.isDefined)
     avroIterator.addOption("filter", filterInJuel.get)
 
+  // list of output columns
+  avroIterator.addOption("prunedcolumns", schema.map(_.name).mkString(","))
+
   // forward options
-  avroIterator.addOption("mleap", properties.getProperty("mleap", ""))
-  avroIterator.addOption("mleapfilter", properties.getProperty("mleapfilter", ""))
+  Seq("mleap", "mleapfilter", "exceptionlogfile")
+    .foreach { key => avroIterator.addOption(key, properties.getProperty(key, "")) }
 
   scanner.addScanIterator(avroIterator)
 
@@ -93,6 +96,7 @@ class AccumuloInputPartitionReader(tableName: String,
   // filter out row-key target from schema generation
   // populate it
   private val avroSchema = AvroUtil.catalystSchemaToAvroSchema(schemaWithoutRowKey)
+
   private val deserializer = new AvroDeserializer(avroSchema, schemaWithRowKey)
   private val reader = new SpecificDatumReader[GenericRecord](avroSchema)
 

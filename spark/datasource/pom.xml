@@ -198,6 +198,28 @@
           </execution>
         </executions>
       </plugin>
+      <!-- it seems accumulo mini cluster doesn't work with JDK 1.8 anymore... 
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <version>3.0.0-M2</version>
+        <executions>
+          <execution>
+            <id>enforce-java</id>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <requireJavaVersion>
+                  <version>1.8.0</version>
+                </requireJavaVersion>
+              </rules>    
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>      
+      -->
     </plugins>
     <sourceDirectory>src/main/scala</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>

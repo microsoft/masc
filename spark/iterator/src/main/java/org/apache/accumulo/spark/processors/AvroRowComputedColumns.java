@@ -36,8 +36,7 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.hadoop.io.Text;
 
 /**
- * Holds all computed columns.
- * 
+ * Holds all computed columns. <br>
  * Note: it's a bit convoluted as we first have to parse the options to figure
  * which additional columns we have, return to the caller so we can setup the
  * AVRO schema and then continue the setup here.
@@ -66,8 +65,8 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
   private List<ExpressionColumn> expressionColumns;
 
   /**
-   * Just the definition of the expression. Need to collect them all first so
-   * the AVRO schema can be build.
+   * Just the definition of the expression. Need to collect them all first so the
+   * AVRO schema can be build.
    */
   static class ExpressionColumnDefinition {
     private RowBuilderField schemaField;
@@ -143,7 +142,7 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
   /**
    * 
    * @return a collection of RowBuilderFields based on the column expression
-   * definitions.
+   *         definitions.
    */
   @Override
   public Collection<RowBuilderField> getSchemaFields() {

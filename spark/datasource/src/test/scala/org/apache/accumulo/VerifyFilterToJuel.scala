@@ -105,4 +105,8 @@ class VerifyFilterToJuel extends FunSuite {
 
     assert(result.unsupportedFilters.isEmpty)
   }
+
+  test("Validate filter supports unknown attributes (e.g. for prediction)") {
+    assert("(prediction > 5)".equals(new FilterToJuel(map).serializeFilter(new GreaterThan("prediction", 5))))
+  }
 }

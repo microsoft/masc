@@ -45,12 +45,13 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   val rowKeyColumn = options.get("rowkey").orElse("rowkey")
 
-  // needs to be nullable so that Avro doesn't barf when we want to add another column
-  private var requiredSchema = StructType(schema.add(rowKeyColumn, DataTypes.StringType, nullable = true).fields ++
-    // add any output fields we find in a mleap pipeline
-    MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse("")))
+  private val baseSchema = StructType(schema.add(rowKeyColumn, DataTypes.StringType, nullable = true).fields)
 
-  private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
+  // needs to be nullable so that Avro doesn't barf when we want to add another column
+  // add any output fields we find in a mleap pipeline
+  private var requiredSchema = StructType(baseSchema ++ MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse("")))
+
+  private val schemaWithoutRowKey = new StructType(baseSchema.fields.filter(_.name != rowKeyColumn))
   private val jsonSchema = AvroUtil.catalystSchemaToJson(schemaWithoutRowKey)
 
   private var filterInJuel: Option[String] = None
@@ -98,7 +99,8 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
-        new PartitionReaderFactory(tableName, splits(i - 1), splits(i), requiredSchema, properties, rowKeyColumn,
+        new PartitionReaderFactory(tableName, splits(i - 1), splits(i),
+          requiredSchema, properties, rowKeyColumn,
           jsonSchema.json, filterInJuel)
       ).asJava
     )

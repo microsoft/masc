@@ -123,7 +123,7 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     // private val columnVisibilityEmpty = new ColumnVisibility
 
     def write(record: InternalRow): Unit = {
-        println(s"writing record: ${record}")
+        // println(s"writing record: ${record}")
 
         val rowKey = stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes
         recordToMutation.foreach { _(rowKey, record) }

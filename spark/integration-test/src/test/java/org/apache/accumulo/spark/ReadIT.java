@@ -16,6 +16,7 @@ import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
 import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
@@ -145,17 +146,34 @@ public class ReadIT {
                         new StructField[] { new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
                                     new StructField("text", DataTypes.StringType, true, Metadata.empty()),
                                     new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
+
+            propMap.put("mleapfilter", "${prediction > 0}");
+            // TODO: would be nice, but it's getting a bit tricky when the filter is
+            // composed
+            // accumuloDf.filter("prediction > 0").show(10);
+
             Dataset<Row> accumuloDf = sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
 
             accumuloDf.show(10);
+            accumuloDf.select("prediction").show(10);
 
             // validate schema
             assertEquals(5, accumuloDf.schema().fields().length);
 
             // validate predictions come back
-            List<Double> predictions = accumuloDf.select("prediction").collectAsList().stream().map(r -> r.getDouble(0))
-                        .collect(Collectors.toList());
-            assertTrue(predictions.containsAll(List.of(0.0, 1.0, 0.0)));
+            File predResult = File.createTempFile("prediction", ".csv");
 
+            // due to different java version conflicts (e.g. 8 vs 11) toLocalIterator() or
+            // collect() doesn't work
+            accumuloDf.select("prediction").write().mode(SaveMode.Overwrite).csv(predResult.toURI().toString());
+
+            List<Double> predictions = Files.readAllLines(
+                        // find the csv file inside the container
+                        Files.list(Paths.get(predResult.getAbsolutePath(), "/"))
+                                    .filter(f -> f.toString().endsWith(".csv")).findAny().get())
+                        // read the file back
+                        .stream().map(l -> Double.parseDouble(l)).collect(Collectors.toList());
+
+            assertTrue(predictions.containsAll(List.of(1.0)));
       }
 }
