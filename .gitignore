@@ -334,3 +334,4 @@ ASALocalRun/
 .classpath
 .vscode
 target/
+.settings/
