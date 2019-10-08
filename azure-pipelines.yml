@@ -9,7 +9,7 @@ stages:
         verbosity: 'Verbose'
         alertWarningLevel: 'High'
 
-- stage: Accumulo Spark 
+- stage: AccumuloSpark 
   jobs:
   - job:
     pool: 
