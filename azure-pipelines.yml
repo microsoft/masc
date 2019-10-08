@@ -1,15 +1,29 @@
-pool:
-  vmImage: 'ubuntu-16.04' # other options: 'macOS-10.13', 'vs2017-win2016'
+stages:
+- stage: Compliance
+  jobs:
+  - job: 
+    steps:
+    - task: ComponentGovernanceComponentDetection@0
+      inputs:
+        scanType: 'Register'
+        verbosity: 'Verbose'
+        alertWarningLevel: 'High'
 
-steps:
-- task: Maven@3
-  inputs:
-    mavenPomFile: 'spark/iterator/pom.xml'
-    javaHomeOption: 'JDKVersion'
-    jdkVersionOption: '1.11'
-    jdkArchitectureOption: 'x64'
-    publishJUnitResults: true
-    testResultsFiles: '**/TEST-*.xml'
-    goals: 'package'
-    options: '-B'
-  displayName: 'Accumulo Iterator'
+- stage: Accumulo Spark 
+  jobs:
+  - job:
+    pool: 
+      vmImage: 'ubuntu-16.04'
+    steps:
+    - task: Maven@3
+      inputs:
+        mavenPomFile: 'spark/pom.xml'
+        javaHomeOption: 'JDKVersion'
+        jdkVersionOption: '1.11'
+        jdkArchitectureOption: 'x64'
+        publishJUnitResults: true
+        testResultsFiles: '**/TEST-*.xml'
+        goals: 'package'
+        options: '-B' # batch mode for non-interactive release
+      displayName: 'Accumulo Spark components'
+
