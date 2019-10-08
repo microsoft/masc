@@ -28,8 +28,9 @@
   <name>Apache Spark Connector for Accumulo Iterator</name>
   <properties>
     <encoding>UTF-8</encoding>
-    <jackson.version>2.10.0</jackson.version>
-    <jackson.databind.version>2.10.0</jackson.databind.version>
+    <!-- this needs to be replaced. triggers compliance but it's the version Spark is using-->
+    <jackson.version>2.6.7</jackson.version>
+    <jackson.databind.version>2.6.7.1</jackson.databind.version>
     <accumulo.version>2.0.0</accumulo.version>
   </properties>
   <dependencies>
@@ -190,9 +191,10 @@
                       <pattern>de.odysseus.juel</pattern>
                       <shadedPattern>shaded.accumulo.spark.de.odysseus.juel</shadedPattern>
                     </relocation>
-                    <relocation>
+                    <!-- <relocation>
                       <pattern>com.fasterxml.jackson</pattern>
                       <shadedPattern>shaded.accumulo.spark.com.fasterxml.jackson</shadedPattern>
+                    </relocation> -->
                   </relocations>
                   <filters>
                     <filter>
