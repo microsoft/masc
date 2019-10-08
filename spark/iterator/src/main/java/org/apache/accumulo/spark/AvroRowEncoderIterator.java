@@ -50,7 +50,7 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.gson.Gson;
 import java.nio.file.*;
 
 /**
@@ -150,7 +150,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   @Override
   public boolean validateOptions(Map<String, String> options) {
     try {
-      new ObjectMapper().readValue(options.get(SCHEMA), RowBuilderField[].class);
+      // avoid Jackson to overcome version mismatch and compliance requirements
+      new Gson().fromJson(options.get(SCHEMA), RowBuilderField[].class);
 
       return true;
     } catch (Exception e) {
@@ -170,7 +171,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
         this.exceptionLogFile = null;
 
       // build the lookup table for the cells we care for from the user-supplied JSON
-      RowBuilderField[] schemaFields = new ObjectMapper().readValue(options.get(SCHEMA), RowBuilderField[].class);
+      // avoid Jackson to overcome version mismatch and compliance requirements
+      RowBuilderField[] schemaFields = new Gson().fromJson(options.get(SCHEMA), RowBuilderField[].class);
 
       // union( user-supplied fields + computed fields )
       ArrayList<RowBuilderField> allFields = new ArrayList<>(Arrays.asList(schemaFields));

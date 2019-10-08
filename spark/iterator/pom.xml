@@ -28,9 +28,6 @@
   <name>Apache Spark Connector for Accumulo Iterator</name>
   <properties>
     <encoding>UTF-8</encoding>
-    <!-- this needs to be replaced. triggers compliance but it's the version Spark is using-->
-    <jackson.version>2.6.7</jackson.version>
-    <jackson.databind.version>2.6.7.1</jackson.databind.version>
     <accumulo.version>2.0.0</accumulo.version>
   </properties>
   <dependencies>
@@ -46,19 +43,9 @@
       <version> 1.8.2</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-core</artifactId>
-      <version>${jackson.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-databind</artifactId>
-      <version>${jackson.databind.version}</version>
-    </dependency>
-     <dependency>
-      <groupId>com.fasterxml.jackson.core</groupId>
-      <artifactId>jackson-annotations</artifactId>
-      <version>${jackson.version}</version>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.8.6</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>
@@ -191,10 +178,6 @@
                       <pattern>de.odysseus.juel</pattern>
                       <shadedPattern>shaded.accumulo.spark.de.odysseus.juel</shadedPattern>
                     </relocation>
-                    <!-- <relocation>
-                      <pattern>com.fasterxml.jackson</pattern>
-                      <shadedPattern>shaded.accumulo.spark.com.fasterxml.jackson</shadedPattern>
-                    </relocation> -->
                   </relocations>
                   <filters>
                     <filter>

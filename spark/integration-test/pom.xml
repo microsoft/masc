@@ -33,12 +33,6 @@
     <version>1.0.0-SNAPSHOT</version>
     <scope>test</scope>
   </dependency>
-   <dependency>
-    <groupId>org.apache.accumulo</groupId>
-    <artifactId>accumulo-core</artifactId>
-    <version>2.0.0</version>
-    <scope>test</scope>
-  </dependency>
   <dependency>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-spark-iterator</artifactId>
@@ -46,6 +40,12 @@
     <scope>test</scope>
   </dependency>
   <dependency>
+    <groupId>org.apache.accumulo</groupId>
+    <artifactId>accumulo-core</artifactId>
+    <version>2.0.0</version>
+    <scope>test</scope>
+  </dependency>
+ <dependency>
     <groupId>org.apache.accumulo</groupId>
     <artifactId>accumulo-minicluster</artifactId>
     <version>2.0.0</version>

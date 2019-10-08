@@ -17,17 +17,24 @@
 
 package org.apache.accumulo.spark.record;
 
-import com.fasterxml.jackson.annotation.JsonGetter;
-import com.fasterxml.jackson.annotation.JsonSetter;
+import com.google.gson.annotations.SerializedName;
 
 /**
  * POJO for the user-supplied schema fields.
  */
 public class RowBuilderField {
+  @SerializedName("cf")
   private String columnFamily;
+
+  @SerializedName("cq")
   private String columnQualifier;
+
+  @SerializedName("t")
   private String type;
+
+  @SerializedName("fvn")
   private String filterVariableName;
+
   private boolean nullable = true;
 
   public RowBuilderField() {
@@ -61,7 +68,6 @@ public class RowBuilderField {
   /**
    * @param filterVariableName the filterVariableName to set
    */
-  @JsonSetter(value = "fvn")
   public void setFilterVariableName(String filterVariableName) {
     this.filterVariableName = filterVariableName;
   }
@@ -69,7 +75,6 @@ public class RowBuilderField {
   /**
    * @return the filterVariableName
    */
-  @JsonGetter(value = "fvn")
   public String getFilterVariableName() {
     return filterVariableName;
   }
@@ -77,7 +82,6 @@ public class RowBuilderField {
   /**
    * @param columnFamily the columnFamily to set
    */
-  @JsonSetter(value = "cf")
   public void setColumnFamily(String columnFamily) {
     this.columnFamily = columnFamily;
   }
@@ -85,7 +89,6 @@ public class RowBuilderField {
   /**
    * @return the columnFamily
    */
-  @JsonGetter(value = "cf")
   public String getColumnFamily() {
     return columnFamily;
   }
@@ -93,7 +96,6 @@ public class RowBuilderField {
   /**
    * @return the columnQualifier
    */
-  @JsonGetter(value = "cq")
   public String getColumnQualifier() {
     return columnQualifier;
   }
@@ -101,7 +103,6 @@ public class RowBuilderField {
   /**
    * @param columnQualifier the columnQualifier to set
    */
-  @JsonSetter(value = "cq")
   public void setColumnQualifier(String columnQualifier) {
     this.columnQualifier = columnQualifier;
   }
@@ -109,7 +110,6 @@ public class RowBuilderField {
   /**
    * @return the type
    */
-  @JsonGetter(value = "t")
   public String getType() {
     return type;
   }
@@ -117,7 +117,6 @@ public class RowBuilderField {
   /**
    * @param type the type to set
    */
-  @JsonSetter(value = "t")
   public void setType(String type) {
     this.type = type;
   }
