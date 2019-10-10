@@ -166,7 +166,6 @@
             </goals>
             <phase>package</phase>
             <configuration>
-              <finalName>${project.artifactId}-shaded</finalName>
               <shadedArtifactAttached>true</shadedArtifactAttached>
               <shadedClassifierName>shaded</shadedClassifierName>
               <artifactSet>
