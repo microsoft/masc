@@ -34,6 +34,7 @@ import org.apache.accumulo.core.security.Authorizations;
 import org.apache.accumulo.core.client.Scanner;
 import org.apache.accumulo.core.data.Key;
 import org.apache.accumulo.core.data.Value;
+import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.stream.Collectors;
 
@@ -174,6 +175,9 @@ public class ReadIT {
                         // read the file back
                         .stream().map(l -> Double.parseDouble(l)).collect(Collectors.toList());
 
-            assertTrue(predictions.containsAll(List.of(1.0)));
+            List<Double> expected = new ArrayList<>();
+            expected.add(1.0);
+
+            assertTrue(predictions.containsAll(expected));
       }
 }
