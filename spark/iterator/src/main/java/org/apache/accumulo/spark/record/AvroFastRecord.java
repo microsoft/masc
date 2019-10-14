@@ -142,7 +142,12 @@ public class AvroFastRecord implements GenericContainer, IndexedRecord {
 
       // top-level field
       if (nestedSchema.getType() != Type.RECORD) {
-        map.put(columnFamily, Map.of(EMPTY_SEQUENCE, createAvroCellConsumer(rootRecord, field)));
+        // Map.of(...) in older JDK
+        Map<ByteSequence, RowBuilderCellConsumer> subMap = new HashMap<>();
+        subMap.put(EMPTY_SEQUENCE, createAvroCellConsumer(rootRecord, field));
+
+        map.put(columnFamily, subMap);
+
         continue;
       }
 
