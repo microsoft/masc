@@ -15,4 +15,4 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 # Build
 
-[![Build Status](https://dev.azure.com/AZGlobal/AGCE%20Development/_apis/build/status/microsoft.Accumulo?branchName=master)](https://dev.azure.com/AZGlobal/AGCE%20Development/_build/latest?definitionId=10&branchName=master)
+[![Build Status](https://dev.azure.com/AZGlobal/Azure%20Global%20CAT%20Engineering/_apis/build/status/AI%20CAT/Web%20Scale%20AI/microsoft.Accumulo?branchName=master)](https://dev.azure.com/AZGlobal/Azure%20Global%20CAT%20Engineering/_build/latest?definitionId=84&branchName=master)
