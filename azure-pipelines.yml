@@ -9,16 +9,16 @@ stages:
         verbosity: 'Verbose'
         alertWarningLevel: 'High'
 
-- stage: AccumuloSpark 
+- stage: AccumuloSparkConnector
   jobs:
   - job:
     pool: 
       vmImage: 'ubuntu-16.04'
     steps:
     - task: Maven@3
-      displayName: 'Accumulo Spark components'
+      displayName: 'Accumulo Spark Connector components'
       inputs:
-        mavenPomFile: 'spark/pom.xml'
+        mavenPomFile: 'connector/pom.xml'
         javaHomeOption: 'JDKVersion'
         jdkVersionOption: '1.11'
         jdkArchitectureOption: 'x64'
@@ -29,30 +29,13 @@ stages:
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: spark/iterator/target/accumulo-spark-iterator-1.0.0-SNAPSHOT-shaded.jar
+        targetPath: connector/iterator/target/accumulo-spark-iterator-1.0.0-SNAPSHOT-shaded.jar
         artifactName: accumulo-spark-iterator
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: spark/datasource/target/accumulo-spark-datasource-1.0.0-SNAPSHOT-shaded.jar
+        targetPath: connector/datasource/target/accumulo-spark-datasource-1.0.0-SNAPSHOT-shaded.jar
         artifactName: accumulo-spark-datasource
-
-    - task: Maven@3
-      displayName: 'Accumulo Duplication iterator'
-      inputs:
-        mavenPomFile: 'duplication-iterator/pom.xml'
-        javaHomeOption: 'JDKVersion'
-        jdkVersionOption: '1.8'
-        jdkArchitectureOption: 'x64'
-        publishJUnitResults: true
-        testResultsFiles: '**/TEST-*.xml'
-        goals: 'package'
-        options: '-B' # batch mode for non-interactive release
-
-    - task: PublishPipelineArtifact@1
-      inputs:
-        targetPath: duplication-iterator/target/accumulo-duplication-iterator-1.0.0-SNAPSHOT.jar
-        artifactName: accumulo-duplication-iterator
 
 
        
