@@ -1,3 +1,9 @@
+# Microsoft Accumulo Spark
+
+The goal of the Microsoft Accumulo Spark repository is to facilitate the use of [Apache Spark](https://spark.apache.org/) and its machine learning ecosystem with [Apache Accumulo](https://accumulo.apache.org/) as a data source. 
+
+# Contents
+- The [Accumulo-Spark Connector](connector) provides connectivity to read from / write to Accumulo using Spark. See the [README](connector/README.md) for more details about supported functionality.
 
 # Contributing
 
