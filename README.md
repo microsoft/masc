@@ -1,6 +1,6 @@
-# Microsoft Accumulo Spark
+# Apache Accumulo - Apache Spark
 
-The goal of the Microsoft Accumulo Spark repository is to facilitate the use of [Apache Spark](https://spark.apache.org/) and its machine learning ecosystem with [Apache Accumulo](https://accumulo.apache.org/) as a data source. 
+The goal of the Accumulo-Spark repository is to facilitate the use of [Apache Spark](https://spark.apache.org/) and its machine learning ecosystem with [Apache Accumulo](https://accumulo.apache.org/) as an external data source. 
 
 # Contents
 - The [Accumulo-Spark Connector](connector) provides connectivity to read from / write to Accumulo using Spark. See the [README](connector/README.md) for more details about supported functionality.
@@ -22,3 +22,7 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 # Build
 
 [![Build Status](https://dev.azure.com/AZGlobal/Azure%20Global%20CAT%20Engineering/_apis/build/status/AI%20CAT/Web%20Scale%20AI/microsoft.Accumulo?branchName=master)](https://dev.azure.com/AZGlobal/Azure%20Global%20CAT%20Engineering/_build/latest?definitionId=84&branchName=master)
+
+# Trademarks
+
+Apache®, Apache Spark, Apache Accumulo, Spark, and Accumulo are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries.
