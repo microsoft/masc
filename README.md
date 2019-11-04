@@ -25,4 +25,4 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 
 # Trademarks
 
-Apache®, Apache Spark, Apache Accumulo, Spark, and Accumulo are either registered trademarks or trademarks of the Apache Software Foundation in the United States and/or other countries.
+Apache®, [Apache Spark](https://spark.apache.org/), [Apache Accumulo](https://accumulo.apache.org/) and Accumulo are either registered trademarks or trademarks of the [Apache Software Foundation](https://www.apache.org/) in the United States and/or other countries.
