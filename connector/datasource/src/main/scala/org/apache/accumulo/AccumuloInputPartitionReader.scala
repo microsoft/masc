@@ -69,6 +69,11 @@ class AccumuloInputPartitionReader(tableName: String,
   private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
   private val schemaWithRowKey = schema
 
+  // only fetch column families we care for
+  // TODO: mark fields as mleap fields so that they are removed...
+  // TODO: fix this hack... needs to be resolved from MLeap schema
+  schemaWithoutRowKey.fields.filter(_.name != "prediction").foreach(f => scanner.fetchColumnFamily(f.name))
+
   private val rowKeyColumnIndex = {
     if (schema.fieldNames.contains(rowKeyColumn))
       schema.fieldIndex(rowKeyColumn)
