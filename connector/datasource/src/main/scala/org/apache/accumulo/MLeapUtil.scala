@@ -24,7 +24,6 @@ import ml.combust.mleap.runtime.MleapContext.defaultContext
 import org.apache.spark.sql.mleap.TypeConverters
 import java.io.File
 import java.util.Base64
-// import com.google.common.io.Files
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 // https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
