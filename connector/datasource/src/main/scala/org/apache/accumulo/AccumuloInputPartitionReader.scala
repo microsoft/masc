@@ -27,7 +27,7 @@ import org.apache.avro.specific.SpecificDatumReader
 import org.apache.spark.sql.avro.AvroDeserializer
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.hadoop.io.Text
 import java.io.IOException
 import java.util.Collections
@@ -37,7 +37,8 @@ import org.apache.spark.unsafe.types.UTF8String
 class AccumuloInputPartitionReader(tableName: String,
                                    start: Array[Byte],
                                    stop: Array[Byte],
-                                   schema: StructType,
+                                   baseSchema: StructType,
+                                   mleapFields: Seq[StructField],
                                    properties: java.util.Properties,
                                    rowKeyColumn: String,
                                    jsonSchema: String,
@@ -66,13 +67,12 @@ class AccumuloInputPartitionReader(tableName: String,
     "org.apache.accumulo.spark.AvroRowEncoderIterator")
 
   // drop rowKey from schema
+  private val schema = new StructType(baseSchema.fields ++ mleapFields)
   private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
   private val schemaWithRowKey = schema
 
-  // only fetch column families we care for
-  // TODO: mark fields as mleap fields so that they are removed...
-  // TODO: fix this hack... needs to be resolved from MLeap schema
-  schemaWithoutRowKey.fields.filter(_.name != "prediction").foreach(f => scanner.fetchColumnFamily(f.name))
+  // only fetch column families we care for (and don't filter for the mleapFields which are artifically added later)
+  baseSchema.fields.filter(_.name != rowKeyColumn).foreach(f => scanner.fetchColumnFamily(f.name))
 
   private val rowKeyColumnIndex = {
     if (schema.fieldNames.contains(rowKeyColumn))

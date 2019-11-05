@@ -21,7 +21,7 @@ import org.apache.accumulo.core.client.Accumulo
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, InputPartitionReader}
-import org.apache.spark.sql.types.{DataTypes, StructType}
+import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.sources.Filter
 import scala.collection.JavaConverters._
 
@@ -49,7 +49,8 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   // needs to be nullable so that Avro doesn't barf when we want to add another column
   // add any output fields we find in a mleap pipeline
-  private var requiredSchema = StructType(baseSchema ++ MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse("")))
+  private var mleapFields = MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse(""))
+  private var requiredSchema = StructType(baseSchema ++ mleapFields)
 
   private val schemaWithoutRowKey = new StructType(baseSchema.fields.filter(_.name != rowKeyColumn))
   private val jsonSchema = AvroUtil.catalystSchemaToJson(schemaWithoutRowKey)
@@ -100,7 +101,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
         new PartitionReaderFactory(tableName, splits(i - 1), splits(i),
-          requiredSchema, properties, rowKeyColumn,
+          baseSchema, mleapFields, properties, rowKeyColumn,
           jsonSchema.json, filterInJuel)
       ).asJava
     )
@@ -111,12 +112,13 @@ class PartitionReaderFactory(tableName: String,
                              start: Array[Byte],
                              stop: Array[Byte],
                              schema: StructType,
+                             mleapFields: Seq[StructField],
                              properties: java.util.Properties,
                              rowKeyColumn: String,
                              jsonSchema: String,
                              filterInJuel: Option[String])
   extends InputPartition[InternalRow] {
   def createPartitionReader: InputPartitionReader[InternalRow] = {
-    new AccumuloInputPartitionReader(tableName, start, stop, schema, properties, rowKeyColumn, jsonSchema, filterInJuel)
+    new AccumuloInputPartitionReader(tableName, start, stop, schema, mleapFields, properties, rowKeyColumn, jsonSchema, filterInJuel)
   }
 }

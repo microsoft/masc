@@ -24,9 +24,12 @@ import ml.combust.mleap.runtime.MleapContext.defaultContext
 import org.apache.spark.sql.mleap.TypeConverters
 import java.io.File
 import java.util.Base64
-import com.google.common.io.Files
+// import com.google.common.io.Files
 import resource._
 import ml.combust.mleap.core.types.ScalarType
+// https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
+import com.google.common.jimfs.{Jimfs, Configuration}
+import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 
 @SerialVersionUID(1L)
 object MLeapUtil {
@@ -36,18 +39,18 @@ object MLeapUtil {
 		if (modelBase64.isEmpty)
 			Seq.empty[StructField]
 		else {
-			// need to do a round trip with the filesystem :(
-			val tempFile = File.createTempFile("mleap", ".zip")
-			tempFile.deleteOnExit
+			val mleapBundleArr = Base64.getDecoder().decode(modelBase64)
 
- 		  val mleapBundleArr = Base64.getDecoder().decode(modelBase64)
-			Files.write(mleapBundleArr, tempFile)
+			val fs = Jimfs.newFileSystem(Configuration.unix())
+			val mleapFilePath = fs.getPath("/mleap.zip")
+			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
 
-			val mleapPipeline = (for(bf <- managed(BundleFile(tempFile))) yield {
+			// create a zip file system view into the zip
+			val zfs = FileSystems.newFileSystem(mleapFilePath, ClassLoader.getSystemClassLoader)
+    
+			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
 			}).tried.get
-
-			tempFile.delete
 
 			mleapPipeline.outputSchema.fields.flatMap {
 				mleapField => {

@@ -22,7 +22,9 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
+import org.apache.spark.sql.functions;
 
+import java.util.Arrays;
 import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
@@ -88,11 +90,30 @@ public class ReadIT {
 
             Dataset<Row> accumuloDf = sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
 
-            System.out.println("PRINT this");
             accumuloDf.show(10);
 
             assertEquals(3, accumuloDf.count());
-            assertEquals(10L, ((Row[])accumuloDf.selectExpr("SUM(`count`)").collect())[0].getLong(0));
+
+            assertDataframe(accumuloDf.select("label"), 0, 1, 0);
+      }
+
+      private void assertDataframe(Dataset<Row> df, double... expectedValues) throws IOException {
+            File result = File.createTempFile("result", ".csv");
+            df.write().mode(SaveMode.Overwrite).csv(result.toURI().toString());
+
+            List<Double> resultValues = Files.readAllLines(
+                        // find the csv file inside the container
+                        Files.list(Paths.get(result.getAbsolutePath(), "/"))
+                                    .filter(f -> f.toString().endsWith(".csv")).findAny().get())
+                        // read the file back
+                        .stream().map(l -> Double.parseDouble(l)).collect(Collectors.toList());
+
+            // match size
+            assertEquals(resultValues.size(), expectedValues.length);
+
+            // match elements
+            for (int i = 0; i < expectedValues.length; i++) 
+                  assertEquals((double)resultValues.get(i), expectedValues[i], 0.0001);
       }
 
       @Test
@@ -197,31 +218,12 @@ public class ReadIT {
 
             Dataset<Row> accumuloDf = sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
 
-            System.out.println("ALL");
             accumuloDf.show(10);
-            System.out.println("prediction only");
             accumuloDf.select("prediction").show(10);
 
             // validate schema
             assertEquals(5, accumuloDf.schema().fields().length);
 
-            // validate predictions come back
-            File predResult = File.createTempFile("prediction", ".csv");
-
-            // due to different java version conflicts (e.g. 8 vs 11) toLocalIterator() or
-            // collect() doesn't work
-            accumuloDf.select("prediction").write().mode(SaveMode.Overwrite).csv(predResult.toURI().toString());
-
-            List<Double> predictions = Files.readAllLines(
-                        // find the csv file inside the container
-                        Files.list(Paths.get(predResult.getAbsolutePath(), "/"))
-                                    .filter(f -> f.toString().endsWith(".csv")).findAny().get())
-                        // read the file back
-                        .stream().map(l -> Double.parseDouble(l)).collect(Collectors.toList());
-
-            List<Double> expected = new ArrayList<>();
-            expected.add(1.0);
-
-            assertTrue(predictions.containsAll(expected));
+            assertDataframe(accumuloDf.select("prediction"), 1);
       }
 }

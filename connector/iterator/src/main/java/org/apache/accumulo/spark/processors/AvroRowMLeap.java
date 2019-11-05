@@ -37,7 +37,6 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 
-import com.google.common.io.Files;
 
 import ml.combust.mleap.avro.SchemaConverter;
 import ml.combust.mleap.core.types.BasicType;
@@ -51,7 +50,19 @@ import ml.combust.mleap.runtime.frame.DefaultLeapFrame;
 import ml.combust.mleap.runtime.frame.Row;
 import ml.combust.mleap.runtime.frame.Transformer;
 import ml.combust.mleap.runtime.javadsl.BundleBuilder;
+import ml.combust.bundle.BundleFile;
 import ml.combust.mleap.runtime.javadsl.ContextBuilder;
+
+// https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
+import com.google.common.jimfs.Configuration;
+import com.google.common.jimfs.Jimfs;
+
+import java.nio.file.Path;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
+
 import scala.collection.JavaConverters;
 import scala.collection.Seq;
 import scala.collection.mutable.WrappedArray;
@@ -73,15 +84,14 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     byte[] mleapBundle = Base64.getDecoder().decode(mleapBundleBase64);
 
-    // alternatively use https://github.com/marschall/memoryfilesystem
+    FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
+    Path mleapFilePath = fs.getPath("/mleap.zip");
+    Files.write(mleapFilePath, mleapBundle, StandardOpenOption.CREATE);
 
-    File tempFile = File.createTempFile("mleap", ".zip");
-    tempFile.deleteOnExit(); // just in case something goes wrong
-
-    // a bit unfortunate... maybe we can use HDFS references too?
-    Files.write(mleapBundle, tempFile);
-
-    return new AvroRowMLeap(tempFile);
+    // create a zip file system view into the zip
+    FileSystem zfs = FileSystems.newFileSystem(mleapFilePath, AvroRowMLeap.class.getClassLoader());
+    
+    return new AvroRowMLeap(zfs);
   }
 
   /**
@@ -126,20 +136,21 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
   private List<OutputField> outputFields;
   private Schema schema;
-  private File modelFile;
+  private FileSystem modelFileSystem;
   private DefaultLeapFrame mleapDataFrame;
   private Object[] mleapValues;
   private Field[] mleapAvroFields;
   private StructType mleapSchema;
   private Transformer transformer;
 
-  private AvroRowMLeap(File modelFile) {
-    this.modelFile = modelFile;
+  private AvroRowMLeap(FileSystem modelFileSystem) {
+    this.modelFileSystem = modelFileSystem;
 
-    // ml.bundle.hdfs.HadoopBundleFileSystem
     MleapContext mleapContext = new ContextBuilder().createMleapContext();
-    this.transformer = new BundleBuilder().load(modelFile, mleapContext).root();
 
+    this.transformer = (Transformer)new BundleFile(this.modelFileSystem, this.modelFileSystem.getPath("/"))
+        .load(mleapContext).get().root();
+ 
     // convert the output schema and remember the field indices
     StructType outputSchema = this.transformer.outputSchema();
 
@@ -184,7 +195,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
   @Override
   public AvroRowMLeap clone() {
-    AvroRowMLeap copy = new AvroRowMLeap(this.modelFile);
+    AvroRowMLeap copy = new AvroRowMLeap(this.modelFileSystem);
 
     copy.initialize(schema);
 
