@@ -1,3 +1,6 @@
+pr:
+- master
+
 stages:
 - stage: Compliance
   jobs:
