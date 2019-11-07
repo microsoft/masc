@@ -167,13 +167,26 @@
                     <excludes>
                       <exclude>org.apache.accumulo:accumulo-native</exclude>
                       <exclude>org.apache.hadoop:*</exclude>
+                      <exclude>com.google.common.jimfs:*</exclude>
                     </excludes>
                   </artifactSet>
                   <relocations>
-                    <relocation>
-                      <pattern>com.google.common</pattern>
-                      <shadedPattern>shaded.accumulo.spark.com.google.common</shadedPattern>
-                    </relocation>
+                    <relocation><pattern>com.google.common.annotations</pattern><shadedPattern>shadded.com.google.common.annotations</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.base</pattern><shadedPattern>shadded.com.google.common.base</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.cache</pattern><shadedPattern>shadded.com.google.common.cache</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.collect</pattern><shadedPattern>shadded.com.google.common.collect</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.escape</pattern><shadedPattern>shadded.com.google.common.escape</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.eventbus</pattern><shadedPattern>shadded.com.google.common.eventbus</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.graph</pattern><shadedPattern>shadded.com.google.common.graph</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.hash</pattern><shadedPattern>shadded.com.google.common.hash</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.html</pattern><shadedPattern>shadded.com.google.common.html</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.io</pattern><shadedPattern>shadded.com.google.common.io</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.math</pattern><shadedPattern>shadded.com.google.common.math</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.net</pattern><shadedPattern>shadded.com.google.common.net</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.primitives</pattern><shadedPattern>shadded.com.google.common.primitives</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.reflect</pattern><shadedPattern>shadded.com.google.common.reflect</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.util</pattern><shadedPattern>shadded.com.google.common.util</shadedPattern></relocation>
+                    <relocation><pattern>com.google.common.xml</pattern><shadedPattern>shadded.com.google.common.xml</shadedPattern></relocation>
                     <relocation>
                       <pattern>org.apache.avro</pattern>
                       <shadedPattern>shaded.accumulo.spark.org.apache.avro</shadedPattern>
