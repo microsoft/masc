@@ -27,11 +27,6 @@ import java.util.Base64
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 // https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
-<<<<<<< HEAD
-=======
-import com.google.common.jimfs.{Jimfs, Configuration}
-import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
->>>>>>> master
 
 @SerialVersionUID(1L)
 object MLeapUtil {
