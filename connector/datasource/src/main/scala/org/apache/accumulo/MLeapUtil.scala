@@ -27,27 +27,16 @@ import java.util.Base64
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 // https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
-import com.google.common.jimfs.{Jimfs, Configuration}
-import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 
 @SerialVersionUID(1L)
 object MLeapUtil {
 
 	// load the Spark pipeline we saved in the previous section
-	def mleapSchemaToCatalyst(modelBase64: String): Seq[StructField] = {
-		if (modelBase64.isEmpty)
+	def mleapSchemaToCatalyst(modelPath: String): Seq[StructField] = {
+		if (modelPath.isEmpty)
 			Seq.empty[StructField]
 		else {
-			val mleapBundleArr = Base64.getDecoder().decode(modelBase64)
-
-			val fs = Jimfs.newFileSystem(Configuration.unix())
-			val mleapFilePath = fs.getPath("/mleap.zip")
-			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
-
-			// create a zip file system view into the zip
-			val zfs = FileSystems.newFileSystem(mleapFilePath, ClassLoader.getSystemClassLoader)
-    
-			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
+			val mleapPipeline = (for(bf <- managed(BundleFile.load("jar:" + modelPath))) yield {
 				bf.loadMleapBundle().get.root
 			}).tried.get
 

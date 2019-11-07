@@ -30,8 +30,9 @@ import org.apache.spark.sql.sources.v2.reader.InputPartitionReader
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.hadoop.io.Text
 import java.io.IOException
-import java.util.Collections
+import java.util.{Base64, Collections}
 import org.apache.spark.unsafe.types.UTF8String
+import com.google.common.io.Resources
 
 @SerialVersionUID(1L)
 class AccumuloInputPartitionReader(tableName: String,
@@ -90,8 +91,15 @@ class AccumuloInputPartitionReader(tableName: String,
   avroIterator.addOption("prunedcolumns", schema.map(_.name).mkString(","))
 
   // forward options
-  Seq("mleap", "mleapfilter", "exceptionlogfile")
+  Seq("mleapfilter", "exceptionlogfile")
     .foreach { key => avroIterator.addOption(key, properties.getProperty(key, "")) }
+
+  val mleapPath = properties.getProperty("mleap", "")
+  if (!mleapPath.isEmpty) {
+    val mleapBytes = Resources.toByteArray(new java.net.URL(mleapPath))
+    val mleapBase64 = Base64.getEncoder.encodeToString(mleapBytes)
+    avroIterator.addOption("mleap", mleapBase64)
+  }
 
   scanner.addScanIterator(avroIterator)
 

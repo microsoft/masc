@@ -185,10 +185,6 @@ public class ReadIT {
             new SimpleSparkSerializer().serializeToBundle(model, "jar:" + tempModel.toPath().toUri().toString(),
                         model.transform(sampleDf));
 
-            // TODO: read back, base64 encode and pass to datasource
-            byte[] modelByteArray = Files.readAllBytes(tempModel.toPath());
-            String modelBase64Encoded = Base64.getEncoder().encodeToString(modelByteArray);
-
             propMap.put("rowkey", "key");
             sampleDf.write().format("org.apache.accumulo").options(propMap).save();
 
@@ -203,7 +199,7 @@ public class ReadIT {
             // }
             // }
 
-            propMap.put("mleap", modelBase64Encoded);
+            propMap.put("mleap", tempModel.toPath().toUri().toString());
 
             // read from accumulo
             StructType schema = new StructType(

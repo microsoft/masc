@@ -28,10 +28,9 @@ import org.apache.spark.sql.types.{DataTypes, StructField}
 @RunWith(classOf[JUnitRunner])
 class VerifyMleapSchema extends FunSuite {
   test("Validate mleap schema extraction") {
-    val mleapBundle = Resources.toByteArray(classOf[VerifyMleapSchema].getResource("sentiment.zip"))
-    val mleapBundleBase64 = Base64.getEncoder().encodeToString(mleapBundle)
+    val mleapPath = classOf[VerifyMleapSchema].getResource("sentiment.zip").toString
 
-  	val fields = MLeapUtil.mleapSchemaToCatalyst(mleapBundleBase64)
+  	val fields = MLeapUtil.mleapSchemaToCatalyst(mleapPath)
 
     assert(Seq(StructField("prediction", DataTypes.DoubleType, false)) ==  fields)
   }
