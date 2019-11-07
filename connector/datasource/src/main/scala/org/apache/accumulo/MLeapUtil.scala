@@ -45,7 +45,7 @@ object MLeapUtil {
 			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
 
 			// create a zip file system view into the zip
-			val zfs = FileSystems.newFileSystem(mleapFilePath, MLeapUtil.getClass.getClassLoader)
+			val zfs = FileSystems.newFileSystem(mleapFilePath, null)
     
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
