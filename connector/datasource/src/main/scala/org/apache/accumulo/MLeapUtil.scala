@@ -24,6 +24,7 @@ import ml.combust.mleap.runtime.MleapContext.defaultContext
 import org.apache.spark.sql.mleap.TypeConverters
 import java.io.File
 import java.util.Base64
+import java.net.URI
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 // https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
@@ -32,6 +33,11 @@ import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 
 @SerialVersionUID(1L)
 object MLeapUtil {
+
+	// public static FileSystem fileSystemForZip(final Path pathToZip) { 
+	//Objects.requireNotNull(pathToZip, "pathToZip is null"); try { return FileSystems.getFileSystem(pathToZipFile.toUri()); } catch (Exception e) {
+	//	 try { return FileSystems.getFileSystem(URI.create("jar:" + pathToZipFile.toUri())); } catch (Exception e2) {
+	//		  return FileSystems.newFileSystem( URI.create("jar:" + pathToZipFile.toUri()), new HashMap<>()); } } }
 
 	// load the Spark pipeline we saved in the previous section
 	def mleapSchemaToCatalyst(modelBase64: String): Seq[StructField] = {
@@ -45,10 +51,10 @@ object MLeapUtil {
 			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
 
 			// https://commons.apache.org/proper/commons-vfs/filesystems.html#ram
-			println(s"MLEAP in memory file path: ${mleapFilePath}")
+			println(s"MLEAP in memory file path: ${mleapFilePath.toUri}")
 
 			// create a zip file system view into the zip
-			val zfs = FileSystems.newFileSystem(mleapFilePath, null)
+			val zfs = FileSystems.newFileSystem(URI.create("jar:" +  mleapFilePath.toUri), new java.util.HashMap[String, Object]())
     
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
