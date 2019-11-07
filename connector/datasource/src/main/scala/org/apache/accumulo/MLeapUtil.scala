@@ -44,6 +44,9 @@ object MLeapUtil {
 			val mleapFilePath = fs.getPath("/mleap.zip")
 			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
 
+			// https://commons.apache.org/proper/commons-vfs/filesystems.html#ram
+			println(s"MLEAP in memory file path: ${mleapFilePath}")
+
 			// create a zip file system view into the zip
 			val zfs = FileSystems.newFileSystem(mleapFilePath, null)
     
