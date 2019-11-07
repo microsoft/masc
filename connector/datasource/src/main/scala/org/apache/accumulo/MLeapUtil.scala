@@ -54,7 +54,7 @@ object MLeapUtil {
 			println(s"MLEAP in memory file path: ${mleapFilePath.toUri}")
 
 			// create a zip file system view into the zip
-			val zfs = FileSystems.newFileSystem(URI.create("jar:" +  mleapFilePath.toUri), new java.util.HashMap[String, Object]())
+			val zfs = FileSystems.newFileSystem(URI.create("jar:" +  mleapFilePath.toUri), new java.util.HashMap[String, Object](), classOf[Jimfs].getClassLoader)
     
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
