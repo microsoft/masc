@@ -17,7 +17,6 @@
 
 package org.apache.accumulo.spark.processors;
 
-import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -51,7 +50,6 @@ import ml.combust.mleap.runtime.frame.ArrayRow;
 import ml.combust.mleap.runtime.frame.DefaultLeapFrame;
 import ml.combust.mleap.runtime.frame.Row;
 import ml.combust.mleap.runtime.frame.Transformer;
-import ml.combust.mleap.runtime.javadsl.BundleBuilder;
 import ml.combust.bundle.BundleFile;
 import ml.combust.mleap.runtime.javadsl.ContextBuilder;
 
@@ -61,12 +59,10 @@ import com.google.common.jimfs.Jimfs;
 
 import java.nio.file.Path;
 import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 
 import scala.collection.JavaConverters;
-import scala.collection.Seq;
 import scala.collection.mutable.WrappedArray;
 
 /**
@@ -90,12 +86,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
     Path mleapFilePath = fs.getPath("/mleap.zip");
     Files.write(mleapFilePath, mleapBundle, StandardOpenOption.CREATE);
 
-    // create a zip file system view into the zip
-    // FileSystem zfs = FileSystems.newFileSystem(mleapFilePath, AvroRowMLeap.class.getClassLoader());
-    
-    FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), mleapFilePath, new HashMap<String, Object>());
-
-    return new AvroRowMLeap(zfs);
+    return new AvroRowMLeap(mleapFilePath);
   }
 
   /**
@@ -140,21 +131,25 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
   private List<OutputField> outputFields;
   private Schema schema;
-  private FileSystem modelFileSystem;
+  private Path modelFilePath;
   private DefaultLeapFrame mleapDataFrame;
   private Object[] mleapValues;
   private Field[] mleapAvroFields;
   private StructType mleapSchema;
   private Transformer transformer;
 
-  private AvroRowMLeap(FileSystem modelFileSystem) {
-    this.modelFileSystem = modelFileSystem;
+  private AvroRowMLeap(Path modelFilePath) throws IOException {
+    this.modelFilePath = modelFilePath;
 
     MleapContext mleapContext = new ContextBuilder().createMleapContext();
 
-    this.transformer = (Transformer)new BundleFile(this.modelFileSystem, this.modelFileSystem.getPath("/"))
-        .load(mleapContext).get().root();
- 
+    try (FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), this.modelFilePath,
+        new HashMap<String, Object>())) {
+      try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
+        this.transformer = (Transformer) bf.load(mleapContext).get().root();
+      }
+    }
+
     // convert the output schema and remember the field indices
     StructType outputSchema = this.transformer.outputSchema();
 
@@ -199,11 +194,16 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
   @Override
   public AvroRowMLeap clone() {
-    AvroRowMLeap copy = new AvroRowMLeap(this.modelFileSystem);
+    try {
+      AvroRowMLeap copy = new AvroRowMLeap(this.modelFilePath);
 
-    copy.initialize(schema);
+      copy.initialize(schema);
 
-    return copy;
+      return copy;
+    } catch (IOException ioe) {
+      // shouldn't occur as it should already happen in the constructor
+      return null;
+    }
   }
 
   @Override
