@@ -24,6 +24,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Collectors;
@@ -36,7 +37,8 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
-
+import org.apache.accumulo.zipfs.ZipFileSystem;
+import org.apache.accumulo.zipfs.ZipFileSystemProvider;
 
 import ml.combust.mleap.avro.SchemaConverter;
 import ml.combust.mleap.core.types.BasicType;
@@ -89,8 +91,10 @@ public class AvroRowMLeap implements AvroRowConsumer {
     Files.write(mleapFilePath, mleapBundle, StandardOpenOption.CREATE);
 
     // create a zip file system view into the zip
-    FileSystem zfs = FileSystems.newFileSystem(mleapFilePath, AvroRowMLeap.class.getClassLoader());
+    // FileSystem zfs = FileSystems.newFileSystem(mleapFilePath, AvroRowMLeap.class.getClassLoader());
     
+    FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), mleapFilePath, new HashMap<String, Object>());
+
     return new AvroRowMLeap(zfs);
   }
 

@@ -23,13 +23,12 @@ import ml.combust.mleap.runtime.MleapSupport._
 import ml.combust.mleap.runtime.MleapContext.defaultContext
 import org.apache.spark.sql.mleap.TypeConverters
 import java.io.File
-import java.util.Base64
+import java.util.{Base64, HashMap}
 import java.net.URI
 import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 import com.google.common.jimfs.{Jimfs, Configuration}
-import collection.JavaConverters._
 import org.apache.accumulo.zipfs.{ZipFileSystem, ZipFileSystemProvider}
 
 @SerialVersionUID(1L)
@@ -73,7 +72,7 @@ object MLeapUtil {
 			// val zfs = zfsCtor.newInstance(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
 
 			// moving to modified OpenJDK ZipFileSystem
-			val zfs = new ZipFileSystem(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
+			val zfs = new ZipFileSystem(new ZipFileSystemProvider, mleapFilePath, new HashMap[String, Object])
 
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
