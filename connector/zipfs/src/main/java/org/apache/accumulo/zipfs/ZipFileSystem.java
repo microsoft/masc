@@ -1301,8 +1301,9 @@ public class ZipFileSystem extends FileSystem {
         throws IOException
     {
         ByteBuffer bb = ByteBuffer.wrap(buf);
-        ((Buffer)bb).position(off);
-        bb.limit((int)(off + len));
+        Buffer b = (Buffer)bb; // JDK 8 compat
+        b.position(off);
+        b.limit((int)(off + len));
         return readFullyAt(bb, pos);
     }
 
