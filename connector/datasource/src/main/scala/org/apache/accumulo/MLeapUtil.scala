@@ -27,17 +27,12 @@ import java.util.Base64
 import java.net.URI
 import resource._
 import ml.combust.mleap.core.types.ScalarType
-// https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
 import com.google.common.jimfs.{Jimfs, Configuration}
 import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
+import com.sun.nio.zipfs.{ZipFileSystem, ZipFileSystemProvider}
 
 @SerialVersionUID(1L)
 object MLeapUtil {
-
-	// public static FileSystem fileSystemForZip(final Path pathToZip) { 
-	//Objects.requireNotNull(pathToZip, "pathToZip is null"); try { return FileSystems.getFileSystem(pathToZipFile.toUri()); } catch (Exception e) {
-	//	 try { return FileSystems.getFileSystem(URI.create("jar:" + pathToZipFile.toUri())); } catch (Exception e2) {
-	//		  return FileSystems.newFileSystem( URI.create("jar:" + pathToZipFile.toUri()), new HashMap<>()); } } }
 
 	// load the Spark pipeline we saved in the previous section
 	def mleapSchemaToCatalyst(modelBase64: String): Seq[StructField] = {
@@ -50,12 +45,26 @@ object MLeapUtil {
 			val mleapFilePath = fs.getPath("/mleap.zip")
 			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
 
-			// https://commons.apache.org/proper/commons-vfs/filesystems.html#ram
-			println(s"MLEAP in memory file path: ${mleapFilePath.toUri}")
+			// Why do we access a private constructor???
+			// 1. MLeap only exposes a FileSystem layer to load models.
+			// 2. We don't want to write to the local file system
+			// 2a. We use Google JimFS
+			// 2b. We can't use https://github.com/marschall/memoryfilesystem at it has a 16MB file size limitation
+			// 2c. We can't use Apache common-vfs as it doesn't support directory listing
+			// 3. Usually one triggers the ZFS implementation by prefixing the URI with jar:
+			//    Unfortunately on Spark the file system provider disappers from the installed list https://stackoverflow.com/questions/39500445/filesystem-provider-disappearing-in-spark
+			//    thus it cannot be found by the ZFS implementation when looking up the jimfs: protocol
+			// 4. The public methods (e.g. FileSystems.newFileSystem(), new ZipFileSystemProvider().newFileSystem()) have checks that limit the incoming FileSystemProvider
 
-			// create a zip file system view into the zip
-			val zfs = FileSystems.newFileSystem(URI.create("jar:" +  mleapFilePath.toUri), new java.util.HashMap[String, Object](), classOf[Jimfs].getClassLoader)
-    
+			// package private ctor... *sigh*
+			val zfsCtor = classOf[ZipFileSystem].getDeclaredConstructor(
+				classOf[ZipFileSystemProvider], 
+				classOf[java.nio.file.Path], 
+				classOf[java.util.Map[String, Object]])
+
+			zfsCtor.setAccessible(true)
+			val zfs = zfsCtor.newInstance(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
+
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
 			}).tried.get
