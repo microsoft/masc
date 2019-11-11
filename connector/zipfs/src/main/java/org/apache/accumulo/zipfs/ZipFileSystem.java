@@ -33,6 +33,7 @@ import java.io.FilterOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
@@ -1300,7 +1301,7 @@ public class ZipFileSystem extends FileSystem {
         throws IOException
     {
         ByteBuffer bb = ByteBuffer.wrap(buf);
-        bb.position(off);
+        ((Buffer)bb).position(off);
         bb.limit((int)(off + len));
         return readFullyAt(bb, pos);
     }
