@@ -25,11 +25,12 @@ import org.apache.spark.sql.mleap.TypeConverters
 import java.io.File
 import java.util.Base64
 import java.net.URI
+import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 import com.google.common.jimfs.{Jimfs, Configuration}
-import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
-import com.sun.nio.zipfs.{ZipFileSystem, ZipFileSystemProvider}
+import collection.JavaConverters._
+import org.apache.accumulo.zipfs.{ZipFileSystem, ZipFileSystemProvider}
 
 @SerialVersionUID(1L)
 object MLeapUtil {
@@ -56,14 +57,23 @@ object MLeapUtil {
 			//    thus it cannot be found by the ZFS implementation when looking up the jimfs: protocol
 			// 4. The public methods (e.g. FileSystems.newFileSystem(), new ZipFileSystemProvider().newFileSystem()) have checks that limit the incoming FileSystemProvider
 
-			// package private ctor... *sigh*
-			val zfsCtor = classOf[ZipFileSystem].getDeclaredConstructor(
-				classOf[ZipFileSystemProvider], 
-				classOf[java.nio.file.Path], 
-				classOf[java.util.Map[String, Object]])
+			// Attempt 10: try to find the jar provider, but then we don't know if the same methods exists :(
+			// val zfsProvider = FileSystemProvider.installedProviders().asScala.filter(_.getScheme == "jar")
+			// FileSystemProvider.installedProviders().asScala.foreach(p => println(p.getScheme))
 
-			zfsCtor.setAccessible(true)
-			val zfs = zfsCtor.newInstance(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
+			// Attempt 9: hard dependency on Oracle JDK, fails on OpenJDK
+			// package private ctor... *sigh*
+			// import com.sun.nio.zipfs.{ZipFileSystem, ZipFileSystemProvider}
+			// val zfsCtor = classOf[ZipFileSystem].getDeclaredConstructor(
+				// classOf[ZipFileSystemProvider], 
+				// classOf[java.nio.file.Path], 
+				// classOf[java.util.Map[String, Object]])
+
+			// zfsCtor.setAccessible(true)
+			// val zfs = zfsCtor.newInstance(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
+
+			// moving to modified OpenJDK ZipFileSystem
+			val zfs = new ZipFileSystem(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
 
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root

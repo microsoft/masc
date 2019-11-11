@@ -23,6 +23,7 @@
   <name>Apache Spark Connector for Accumulo</name>
   <packaging>pom</packaging>
   <modules>
+    <module>zipfs</module>
     <module>datasource</module>
     <module>iterator</module>
     <module>integration-test</module>
