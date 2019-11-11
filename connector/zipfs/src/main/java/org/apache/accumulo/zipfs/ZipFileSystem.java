@@ -1011,10 +1011,11 @@ public class ZipFileSystem extends FileSystem {
                         try (InputStream is = getInputStream(e)) {  // copyover
                             byte[] buf = new byte[8192];
                             ByteBuffer bb = ByteBuffer.wrap(buf);
+                            Buffer b = (Buffer)bb; // JDK 8 compat
                             int n;
                             while ((n = is.read(buf)) != -1) {
-                                bb.position(0);
-                                bb.limit(n);
+                                b.position(0);
+                                b.limit(n);
                                 sbc.write(bb);
                             }
                         }
@@ -2091,8 +2092,9 @@ public class ZipFileSystem extends FileSystem {
             // readFullyAt()
             long n;
             ByteBuffer bb = ByteBuffer.wrap(b);
-            bb.position(off);
-            bb.limit(off + len);
+            Buffer b8 = (Buffer)bb; // JDK 8 compat
+            b8.position(off);
+            b8.limit(off + len);
             synchronized(zfch) {
                 n = zfch.position(pos).read(bb);
             }
