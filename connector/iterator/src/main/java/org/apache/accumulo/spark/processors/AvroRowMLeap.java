@@ -143,6 +143,9 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     MleapContext mleapContext = new ContextBuilder().createMleapContext();
 
+    System.out.println("AvroRowMleap decompress");
+    System.err.println("AvroRowMleap decompress");
+
     try (FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), this.modelFilePath,
         new HashMap<String, Object>())) {
       try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
@@ -267,6 +270,8 @@ public class AvroRowMLeap implements AvroRowConsumer {
     // this.mleapDataFrame.printSchema();
     // this.mleapDataFrame.show(System.out);
 
+    long start = System.nanoTime();
+
     // overcome
     // https://stackoverflow.com/questions/30372211/why-does-this-compile-under-java-7-but-not-under-java-8
     // maybe this can be cached and computation re-triggered?
@@ -275,6 +280,10 @@ public class AvroRowMLeap implements AvroRowConsumer {
     // execute ML model
     scala.collection.Iterator<Row> iter = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
     Row row = iter.next();
+
+    long elapsed = System.nanoTime() - start;
+    System.out.println("AvroRowMLeap.consume: " + elapsed);
+    System.err.println("AvroRowMLeap.consume: " + elapsed);
 
     // Helpful when debugging
     // resultDataFrame.show(System.out);
