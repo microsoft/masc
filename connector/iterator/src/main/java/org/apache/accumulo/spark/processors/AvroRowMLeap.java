@@ -157,6 +157,10 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     logger.info(String.format("Decompress: %.2fms", (System.nanoTime() - start) / 1e6));
 
+    // logger.info("Transformer: " + this.transformer.model());
+    // logger.info("Input schema: " + this.transformer.inputSchema());
+    // logger.info("Output schema: " + this.transformer.outputSchema());
+
     // convert the output schema and remember the field indices
     StructType outputSchema = this.transformer.outputSchema();
 
@@ -236,17 +240,12 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
       avroFields.add(field);
       mleapFields.add(SchemaConverter.avroToMleapField(field, null));
+      // logger.info("Input field: " + field);
     }
 
     this.mleapAvroFields = avroFields.toArray(new Field[0]);
     this.mleapSchema = StructType.apply(mleapFields).get();
     this.mleapValues = new Object[this.mleapAvroFields.length];
-
-    this.mleapDataFrame = new DefaultLeapFrame(this.mleapSchema,
-        JavaConverters
-            .asScalaIteratorConverter(
-                Arrays.stream(new Row[] { new ArrayRow(WrappedArray.make(this.mleapValues)) }).iterator())
-            .asScala().toSeq());
 
     // generate the final schema
     StructType outputSchema = this.transformer
@@ -264,31 +263,53 @@ public class AvroRowMLeap implements AvroRowConsumer {
     }
   }
 
+  private scala.collection.Iterator<Row> resultIterator;
+  private boolean rowAvailable;
+
   @Override
   public boolean consume(Text rowKey, IndexedRecord record) throws IOException {
+
+    long start = System.nanoTime();
+
     // surface data to MLeap dataframe
     for (int i = 0; i < this.mleapAvroFields.length; i++)
       this.mleapValues[i] = record.get(this.mleapAvroFields[i].pos());
 
-    // Helpful when debugging
-    // this.mleapDataFrame.printSchema();
-    // this.mleapDataFrame.show(System.out);
+    this.rowAvailable = true;
 
-    long start = System.nanoTime();
+    if (this.resultIterator == null) {
+      final ArrayRow arrayRow = new ArrayRow(WrappedArray.make(this.mleapValues));
 
-    // overcome
-    // https://stackoverflow.com/questions/30372211/why-does-this-compile-under-java-7-but-not-under-java-8
-    // maybe this can be cached and computation re-triggered?
-    DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
+      this.mleapDataFrame = new DefaultLeapFrame(this.mleapSchema,
+          JavaConverters.asScalaIteratorConverter(new java.util.Iterator<Row>() {
 
-    // execute ML model
-    scala.collection.Iterator<Row> iter = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
-    Row row = iter.next();
+            @Override
+            public boolean hasNext() {
+              if (!AvroRowMLeap.this.rowAvailable)
+                throw new IllegalStateException("Only one row at a time should be consumed");
 
-    logger.info(String.format("Inference: %.2fms", (System.nanoTime() - start) / 1e6));
+              return AvroRowMLeap.this.rowAvailable;
+            }
 
-    // Helpful when debugging
-    // resultDataFrame.show(System.out);
+            @Override
+            public Row next() {
+              AvroRowMLeap.this.rowAvailable = false;
+
+              return arrayRow;
+            }
+          }).asScala().toSeq());
+
+      DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
+      this.resultIterator = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
+
+      // Helpful when debugging
+      // this.mleapDataFrame.printSchema();
+      // this.mleapDataFrame.show(System.out);
+    }
+
+    Row row = resultIterator.next();
+
+    logger.info(String.format("Inference.2: %.2fms", (System.nanoTime() - start) / 1e6));
 
     // copy mleap output to avro record
     for (OutputField field : this.outputFields)

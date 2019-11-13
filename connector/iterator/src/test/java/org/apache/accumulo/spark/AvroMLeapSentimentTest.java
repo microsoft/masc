@@ -123,14 +123,19 @@ public class AvroMLeapSentimentTest {
 	private AvroRowEncoderIterator createIterator(String mleapFilter) throws Exception {
 		// load mleap model
 		byte[] mleapBundle = Resources.toByteArray(AvroMLeapSentimentTest.class.getResource("sentiment.zip"));
+		// byte[] mleapBundle =
+		// Resources.toByteArray(AvroMLeapSentimentTest.class.getResource("twitter.model.lr.zip"));
 		String mleapBundleBase64 = Base64.getEncoder().encodeToString(mleapBundle);
 
 		SortedMap<Key, Value> map = new TreeMap<>();
 		map.put(new Key("key1", "text", ""), new Value(new StringLexicoder().encode("this is good")));
 		map.put(new Key("key2", "text", ""), new Value(new StringLexicoder().encode("this is bad")));
-		for (int i = 3; i < 1024; i++) {
-			map.put(new Key("keyX" + i, "text", ""), new Value(new StringLexicoder().encode("this is bad")));
-		}
+		// for (int i = 3; i < 8 * 1024; i++) {
+		// map.put(new Key("keyX" + i, "text", ""), new Value(new
+		// StringLexicoder().encode(
+		// "this is bad very very long text " + i + " with a lot of data" + i + " and
+		// some more characters")));
+		// }
 
 		SortedMapIterator parentIterator = new SortedMapIterator(map);
 		AvroRowEncoderIterator iterator = new AvroRowEncoderIterator();
@@ -161,7 +166,7 @@ public class AvroMLeapSentimentTest {
 		GenericRecord record = AvroUtil.deserialize(iterator.getTopValue().get(), iterator.getSchema());
 
 		assertEquals("key1", iterator.getTopKey().getRow().toString());
-		assertEquals(1.0, (double) record.get("prediction"), 0.00001);
+		assertEquals(1.0, (double) record.get("prediction"), 0.00001); // disable for perf test
 
 		// row2
 		iterator.next();
@@ -170,18 +175,20 @@ public class AvroMLeapSentimentTest {
 		record = AvroUtil.deserialize(iterator.getTopValue().get(), iterator.getSchema());
 
 		assertEquals("key2", iterator.getTopKey().getRow().toString());
-		// System.out.println(record.get("prediction"));
+		System.out.println(record.get("prediction"));
 		assertEquals(0.0, (double) record.get("prediction"), 0.00001);
 
-		// remaining rows
-		iterator.next();
+		// perf test
+		// iterator.next();
 
-		for (; iterator.hasTop(); iterator.next()) {
-			assertEquals(0.0, (double) record.get("prediction"), 0.00001);
-		}
+		// for (; iterator.hasTop(); iterator.next()) {
+		// // assertEquals(0.0, (double) record.get("prediction"), 0.00001);
+		// assertEquals(0.0, (double) record.get("prediction"), 0.00001);
+		// double x = (double) record.get("prediction");
+		// }
 
 		// end
-		// iterator.next();
-		// assertFalse(iterator.hasTop());
+		iterator.next();
+		assertFalse(iterator.hasTop());
 	}
 }
