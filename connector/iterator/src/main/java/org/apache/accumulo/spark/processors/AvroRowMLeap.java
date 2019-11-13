@@ -36,6 +36,7 @@ import org.apache.avro.Schema.Type;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 import org.apache.accumulo.zipfs.ZipFileSystem;
 import org.apache.accumulo.zipfs.ZipFileSystemProvider;
 
@@ -69,6 +70,8 @@ import scala.collection.mutable.WrappedArray;
  * Maps AVRO Generic row to MLeap data frame enabling server-side inference.
  */
 public class AvroRowMLeap implements AvroRowConsumer {
+  private final static Logger logger = Logger.getLogger(AvroRowMLeap.class);
+
   /**
    * Key for mleap bundle option.
    */
@@ -143,8 +146,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     MleapContext mleapContext = new ContextBuilder().createMleapContext();
 
-    System.out.println("AvroRowMleap decompress");
-    System.err.println("AvroRowMleap decompress");
+    long start = System.nanoTime();
 
     try (FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), this.modelFilePath,
         new HashMap<String, Object>())) {
@@ -152,6 +154,8 @@ public class AvroRowMLeap implements AvroRowConsumer {
         this.transformer = (Transformer) bf.load(mleapContext).get().root();
       }
     }
+
+    logger.info(String.format("Decompress: %.2fms", (System.nanoTime() - start) / 1e6));
 
     // convert the output schema and remember the field indices
     StructType outputSchema = this.transformer.outputSchema();
@@ -281,9 +285,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
     scala.collection.Iterator<Row> iter = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
     Row row = iter.next();
 
-    long elapsed = System.nanoTime() - start;
-    System.out.println("AvroRowMLeap.consume: " + elapsed);
-    System.err.println("AvroRowMLeap.consume: " + elapsed);
+    logger.info(String.format("Inference: %.2fms", (System.nanoTime() - start) / 1e6));
 
     // Helpful when debugging
     // resultDataFrame.show(System.out);

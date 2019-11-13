@@ -38,6 +38,7 @@ import org.apache.accumulo.core.iterators.SortedMapIterator;
 import org.apache.accumulo.spark.processors.AvroRowMLeap;
 import org.apache.avro.generic.GenericRecord;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.log4j.BasicConfigurator;
 // import org.apache.spark.SparkConf;
 // import org.apache.spark.sql.SparkSession;
 import org.junit.Test;
@@ -127,6 +128,9 @@ public class AvroMLeapSentimentTest {
 		SortedMap<Key, Value> map = new TreeMap<>();
 		map.put(new Key("key1", "text", ""), new Value(new StringLexicoder().encode("this is good")));
 		map.put(new Key("key2", "text", ""), new Value(new StringLexicoder().encode("this is bad")));
+		for (int i = 3; i < 1024; i++) {
+			map.put(new Key("keyX" + i, "text", ""), new Value(new StringLexicoder().encode("this is bad")));
+		}
 
 		SortedMapIterator parentIterator = new SortedMapIterator(map);
 		AvroRowEncoderIterator iterator = new AvroRowEncoderIterator();
@@ -148,6 +152,8 @@ public class AvroMLeapSentimentTest {
 
 	@Test
 	public void testMLeapModelExecution() throws Exception {
+		BasicConfigurator.configure();
+
 		AvroRowEncoderIterator iterator = createIterator(null);
 
 		// row 1
@@ -164,11 +170,18 @@ public class AvroMLeapSentimentTest {
 		record = AvroUtil.deserialize(iterator.getTopValue().get(), iterator.getSchema());
 
 		assertEquals("key2", iterator.getTopKey().getRow().toString());
-		System.out.println(record.get("prediction"));
+		// System.out.println(record.get("prediction"));
 		assertEquals(0.0, (double) record.get("prediction"), 0.00001);
 
-		// end
+		// remaining rows
 		iterator.next();
-		assertFalse(iterator.hasTop());
+
+		for (; iterator.hasTop(); iterator.next()) {
+			assertEquals(0.0, (double) record.get("prediction"), 0.00001);
+		}
+
+		// end
+		// iterator.next();
+		// assertFalse(iterator.hasTop());
 	}
 }
