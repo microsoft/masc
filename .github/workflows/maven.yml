@@ -27,5 +27,5 @@ jobs:
       with:
         azcliversion: latest
         inlineScript: |
-          az storage blob upload-batch -d connector/datasource/target --pattern *-shaded.jar -c accumulo-spark-jars
-          az storage blob upload-batch -d connector/iterator/target --pattern *-shaded.jar -c accumulo-spark-jars
+          az storage blob upload-batch -s connector/datasource/target --pattern *-shaded.jar -d accumulo-spark-jars
+          az storage blob upload-batch -s connector/iterator/target --pattern *-shaded.jar -d accumulo-spark-jars
