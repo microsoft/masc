@@ -41,7 +41,7 @@ import org.apache.hadoop.io.Text;
  * which additional columns we have, return to the caller so we can setup the
  * AVRO schema and then continue the setup here.
  */
-public class AvroRowComputedColumns implements AvroRowConsumer {
+public class AvroRowComputedColumns extends AvroRowConsumer {
   public static final String COLUMN_PREFIX = "column.";
 
   /**
@@ -175,7 +175,7 @@ public class AvroRowComputedColumns implements AvroRowConsumer {
   }
 
   @Override
-  public boolean consume(Text rowKey, IndexedRecord record) throws IOException {
+  protected boolean consumeInternal(Text rowKey, IndexedRecord record) throws IOException {
     this.expressionContext.setCurrent(rowKey, record);
 
     // compute each expression

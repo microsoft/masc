@@ -31,18 +31,22 @@ import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 /**
- * Evaluates the user-supplied filter (JUEL syntax) against the constructed
- * AVRO record.
+ * Evaluates the user-supplied filter (JUEL syntax) against the constructed AVRO
+ * record.
  * 
  * @implNote filter operates on AVRO Record object, not on the serialized
  *           version.
  */
-public class AvroRowFilter implements AvroRowConsumer {
+public class AvroRowFilter extends AvroRowConsumer {
+  private final static Logger logger = Logger.getLogger(AvroRowFilter.class);
+
   public static AvroRowFilter create(Map<String, String> options, String optionKey) {
     String filter = options.get(optionKey);
-    return StringUtils.isEmpty(filter) ? null : new AvroRowFilter(filter);
+
+    return StringUtils.isEmpty(filter) ? null : new AvroRowFilter(filter, optionKey);
   }
 
   /**
@@ -55,6 +59,8 @@ public class AvroRowFilter implements AvroRowConsumer {
    */
   private String filter;
 
+  private String optionKey;
+
   /**
    * JUEL expression context exposing AVRO GenericRecord
    */
@@ -65,12 +71,20 @@ public class AvroRowFilter implements AvroRowConsumer {
    */
   private ValueExpression filterExpression;
 
-  private AvroRowFilter(String filter) {
+  private AvroRowFilter(String filter, String optionKey) {
+    logger.info(optionKey + " filter '" + filter + "'");
+
     this.filter = filter;
+    this.optionKey = optionKey;
   }
 
   @Override
-  public boolean consume(Text rowKey, IndexedRecord record) throws IOException {
+  public String getName() {
+    return super.getName() + " " + this.optionKey;
+  }
+
+  @Override
+  protected boolean consumeInternal(Text rowKey, IndexedRecord record) throws IOException {
     // link AVRO record with JUEL expression context
     this.expressionContext.setCurrent(rowKey, record);
 
@@ -79,7 +93,7 @@ public class AvroRowFilter implements AvroRowConsumer {
 
   @Override
   public AvroRowConsumer clone() {
-    AvroRowFilter copy = new AvroRowFilter(this.filter);
+    AvroRowFilter copy = new AvroRowFilter(this.filter, this.optionKey);
 
     copy.initialize(schema);
 

@@ -69,7 +69,7 @@ import scala.collection.mutable.WrappedArray;
 /**
  * Maps AVRO Generic row to MLeap data frame enabling server-side inference.
  */
-public class AvroRowMLeap implements AvroRowConsumer {
+public class AvroRowMLeap extends AvroRowConsumer {
   private final static Logger logger = Logger.getLogger(AvroRowMLeap.class);
 
   /**
@@ -83,13 +83,20 @@ public class AvroRowMLeap implements AvroRowConsumer {
     if (StringUtils.isEmpty(mleapBundleBase64))
       return null;
 
+    long start = System.nanoTime();
+
     byte[] mleapBundle = Base64.getDecoder().decode(mleapBundleBase64);
 
     FileSystem fs = Jimfs.newFileSystem(Configuration.unix());
     Path mleapFilePath = fs.getPath("/mleap.zip");
     Files.write(mleapFilePath, mleapBundle, StandardOpenOption.CREATE);
 
-    return new AvroRowMLeap(mleapFilePath);
+    AvroRowMLeap ret = new AvroRowMLeap(mleapFilePath);
+
+    logger.info(String.format("Decompressing model (%.1fkb) %.2fms", mleapBundleBase64.length() / 1024.0,
+        (System.nanoTime() - start) / 1e6));
+
+    return ret;
   }
 
   /**
@@ -146,16 +153,12 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
     MleapContext mleapContext = new ContextBuilder().createMleapContext();
 
-    long start = System.nanoTime();
-
     try (FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), this.modelFilePath,
         new HashMap<String, Object>())) {
       try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
         this.transformer = (Transformer) bf.load(mleapContext).get().root();
       }
     }
-
-    logger.info(String.format("Decompress: %.2fms", (System.nanoTime() - start) / 1e6));
 
     // logger.info("Transformer: " + this.transformer.model());
     // logger.info("Input schema: " + this.transformer.inputSchema());
@@ -260,6 +263,8 @@ public class AvroRowMLeap implements AvroRowConsumer {
 
       // link mleap dataframe field index with avro field index
       field.setAvroFieldIndex(schema.getField(field.getField().getColumnFamily()).pos());
+
+      logger.info("Output field: " + field.getField().getColumnFamily() + ":" + field.getField().getType());
     }
   }
 
@@ -267,9 +272,7 @@ public class AvroRowMLeap implements AvroRowConsumer {
   private boolean rowAvailable;
 
   @Override
-  public boolean consume(Text rowKey, IndexedRecord record) throws IOException {
-
-    long start = System.nanoTime();
+  protected boolean consumeInternal(Text rowKey, IndexedRecord record) throws IOException {
 
     // surface data to MLeap dataframe
     for (int i = 0; i < this.mleapAvroFields.length; i++)
@@ -308,8 +311,6 @@ public class AvroRowMLeap implements AvroRowConsumer {
     }
 
     Row row = resultIterator.next();
-
-    logger.info(String.format("Inference.2: %.2fms", (System.nanoTime() - start) / 1e6));
 
     // copy mleap output to avro record
     for (OutputField field : this.outputFields)
