@@ -1,9 +1,6 @@
 name: Java CI
 
 on: [push]
-
-env:
-  AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_KEY  }}
   
 jobs:
   build:
@@ -18,14 +15,6 @@ jobs:
       with:
         java-version: 1.11
     
-    - name: Build with Maven
+    - name: Build with Deploy Maven
       working-directory: connector
-      run: mvn -B package
-        
-    - name: Copy jars to Blob Storage
-      uses: azure/CLI@v1
-      with:
-        azcliversion: latest
-        inlineScript: |
-          az storage blob upload-batch -s connector/datasource/target --pattern *-shaded.jar -d accumulo-spark-jars
-          az storage blob upload-batch -s connector/iterator/target --pattern *-shaded.jar -d accumulo-spark-jars
+      run: mvn -B package deploy
