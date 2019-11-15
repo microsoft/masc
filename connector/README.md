@@ -1,10 +1,11 @@
-# Accumulo-Spark Connector
+# Microsoft Connector for Apache Accumulo and Apache Spark
 
-The Accumulo-Spark Connector provides connectivity to Accumulo using Spark.
+This code provides connectivity between Apache Accumulo and Apache Spark.
 
 ## Main Goals
-- Provide native Spark interface to connecto to Accumulo
+- Provide native Spark interface to connect to Accumulo
 - Minimize data transfer between Spark and Accumulo
+- Enable use of Machine Learning with Accumulo as the datastore
 
 ## Examples
 ```
