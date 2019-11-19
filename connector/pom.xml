@@ -22,6 +22,13 @@
   <version>1.0.0-SNAPSHOT</version>
   <name>Apache Spark Connector for Accumulo</name>
   <packaging>pom</packaging>
+  <distributionManagement>
+   <repository>
+     <id>github</id>
+     <name>GitHub Microsoft Apache Maven Packages</name>
+     <url>https://maven.pkg.github.com/Microsoft/masc</url>
+   </repository>
+  </distributionManagement>
   <modules>
     <module>zipfs</module>
     <module>datasource</module>
