@@ -1,4 +1,4 @@
-# Microsoft Connector for Apache Accumulo and Apache Spark
+# Microsoft MASC, an Apache Spark connector for Apache Accumulo
 
 The goal of this repository is to facilitate the use of [Apache Spark](https://spark.apache.org/) and its machine learning ecosystem with [Apache Accumulo](https://accumulo.apache.org/) as an external data source. 
 
