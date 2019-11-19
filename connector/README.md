@@ -1,4 +1,4 @@
-# Microsoft Connector for Apache Accumulo and Apache Spark
+# Microsoft MASC, an Apache Spark connector for Apache Accumulo
 
 This code provides connectivity between Apache Accumulo and Apache Spark.
 
