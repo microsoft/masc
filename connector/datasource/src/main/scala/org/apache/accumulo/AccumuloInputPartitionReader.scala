@@ -32,6 +32,7 @@ import org.apache.hadoop.io.Text
 import java.io.IOException
 import java.util.Collections
 import org.apache.spark.unsafe.types.UTF8String
+import org.apache.log4j.Logger
 
 @SerialVersionUID(1L)
 class AccumuloInputPartitionReader(tableName: String,
@@ -44,6 +45,8 @@ class AccumuloInputPartitionReader(tableName: String,
                                    jsonSchema: String,
                                    filterInJuel: Option[String])
   extends InputPartitionReader[InternalRow] with Serializable {
+
+  private val logger = Logger.getLogger(classOf[AccumuloInputPartitionReader])
 
   val defaultPriority = "20"
   val defaultNumQueryThreads = "1"
@@ -82,12 +85,15 @@ class AccumuloInputPartitionReader(tableName: String,
   }
 
   // AVRO Iterator setup
+  logger.info(s"JSON schema: ${jsonSchema}")
   avroIterator.addOption("schema", jsonSchema)
   if (filterInJuel.isDefined)
     avroIterator.addOption("filter", filterInJuel.get)
 
   // list of output columns
-  avroIterator.addOption("prunedcolumns", schema.map(_.name).mkString(","))
+  val prunedColumns = schema.map(_.name).mkString(",")
+  logger.info(s"Pruned columns: ${prunedColumns}")
+  avroIterator.addOption("prunedcolumns", prunedColumns)
 
   // forward options
   Seq("mleap", "mleapfilter", "exceptionlogfile")

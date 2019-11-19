@@ -2,11 +2,11 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
   <parent>
-    <groupId>org.apache.accumulo</groupId>
+    <groupId>com.microsoft.masc</groupId>
     <artifactId>accumulo-spark</artifactId>
     <version>1.0.0-SNAPSHOT</version>
   </parent>
-  <groupId>org.apache.accumulo</groupId>
+  <groupId>com.microsoft.masc</groupId>
   <artifactId>accumulo-spark-datasource</artifactId>
   <name>Apache Spark Connector for Accumulo DataSource</name>
   <description>Accumulo Connector for Apache Spark.</description>
@@ -25,6 +25,11 @@
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
       <version>2.0.0</version>
+    </dependency>
+    <dependency>
+      <groupId>com.microsoft.masc</groupId>
+      <artifactId>accumulo-spark-zipfs</artifactId>
+      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.avro</groupId>
@@ -80,6 +85,11 @@
       <groupId>com.google.jimfs</groupId>
       <artifactId>jimfs</artifactId>
       <version>1.1</version>
+    </dependency>
+    <dependency>
+      <groupId>log4j</groupId>
+      <artifactId>log4j</artifactId>
+      <version>1.2.17</version>
     </dependency>
     
     <!-- Test -->

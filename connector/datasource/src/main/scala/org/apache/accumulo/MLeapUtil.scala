@@ -23,12 +23,13 @@ import ml.combust.mleap.runtime.MleapSupport._
 import ml.combust.mleap.runtime.MleapContext.defaultContext
 import org.apache.spark.sql.mleap.TypeConverters
 import java.io.File
-import java.util.Base64
+import java.util.{Base64, HashMap}
+import java.net.URI
+import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 import resource._
 import ml.combust.mleap.core.types.ScalarType
-// https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
 import com.google.common.jimfs.{Jimfs, Configuration}
-import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
+import org.apache.accumulo.zipfs.{ZipFileSystem, ZipFileSystemProvider}
 
 @SerialVersionUID(1L)
 object MLeapUtil {
@@ -44,9 +45,35 @@ object MLeapUtil {
 			val mleapFilePath = fs.getPath("/mleap.zip")
 			Files.write(mleapFilePath, mleapBundleArr, StandardOpenOption.CREATE)
 
-			// create a zip file system view into the zip
-			val zfs = FileSystems.newFileSystem(mleapFilePath, ClassLoader.getSystemClassLoader)
-    
+			// Why do we access a private constructor???
+			// 1. MLeap only exposes a FileSystem layer to load models.
+			// 2. We don't want to write to the local file system
+			// 2a. We use Google JimFS
+			// 2b. We can't use https://github.com/marschall/memoryfilesystem at it has a 16MB file size limitation
+			// 2c. We can't use Apache common-vfs as it doesn't support directory listing
+			// 3. Usually one triggers the ZFS implementation by prefixing the URI with jar:
+			//    Unfortunately on Spark the file system provider disappers from the installed list https://stackoverflow.com/questions/39500445/filesystem-provider-disappearing-in-spark
+			//    thus it cannot be found by the ZFS implementation when looking up the jimfs: protocol
+			// 4. The public methods (e.g. FileSystems.newFileSystem(), new ZipFileSystemProvider().newFileSystem()) have checks that limit the incoming FileSystemProvider
+
+			// Attempt 10: try to find the jar provider, but then we don't know if the same methods exists :(
+			// val zfsProvider = FileSystemProvider.installedProviders().asScala.filter(_.getScheme == "jar")
+			// FileSystemProvider.installedProviders().asScala.foreach(p => println(p.getScheme))
+
+			// Attempt 9: hard dependency on Oracle JDK, fails on OpenJDK
+			// package private ctor... *sigh*
+			// import com.sun.nio.zipfs.{ZipFileSystem, ZipFileSystemProvider}
+			// val zfsCtor = classOf[ZipFileSystem].getDeclaredConstructor(
+				// classOf[ZipFileSystemProvider], 
+				// classOf[java.nio.file.Path], 
+				// classOf[java.util.Map[String, Object]])
+
+			// zfsCtor.setAccessible(true)
+			// val zfs = zfsCtor.newInstance(new ZipFileSystemProvider, mleapFilePath, new java.util.HashMap[String, Object])
+
+			// moving to modified OpenJDK ZipFileSystem
+			val zfs = new ZipFileSystem(new ZipFileSystemProvider, mleapFilePath, new HashMap[String, Object])
+
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
 			}).tried.get

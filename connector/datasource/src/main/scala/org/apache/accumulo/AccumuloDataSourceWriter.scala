@@ -22,17 +22,45 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.writer.{DataSourceWriter, DataWriter, DataWriterFactory, WriterCommitMessage}
 import org.apache.spark.sql.types.StructType
+import org.apache.accumulo.core.client.Accumulo
+import org.apache.hadoop.io.Text
 import scala.collection.JavaConverters._
+import org.apache.log4j.Logger
 
 class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: DataSourceOptions)
   extends DataSourceWriter {
+  
+  private val logger = Logger.getLogger(classOf[AccumuloDataSourceWriter])
+
+  val tableName = options.tableName.get
+  val properties = new java.util.Properties()
+  // cannot use .putAll(options.asMap()) due to https://github.com/scala/bug/issues/10418
+  options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
+
+  val client = Accumulo.newClient().from(properties).build()
+  // create table if it's not there
+  if (!client.tableOperations.exists(tableName)) {
+      // adding splits to a newly created table
+      val splits = new java.util.TreeSet(
+          properties.getProperty("splits", "")
+              .split(",")
+              .map(new Text(_))
+              .toSeq
+              .asJava)
+          
+      logger.info(s"Creating table with splits: ${splits}")
+
+      client.tableOperations.create(tableName)
+
+      if (!splits.isEmpty) {
+          client.tableOperations.addSplits(tableName, splits)
+      }
+  }
+
+  client.close
 
   override def createWriterFactory(): DataWriterFactory[InternalRow] = {
-    val tableName = options.tableName.get
-    val properties = new java.util.Properties()
-    // cannot use .putAll(options.asMap()) due to https://github.com/scala/bug/issues/10418
-    options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
-
+   
     new AccumuloDataWriterFactory(tableName, schema, mode, properties)
   }
 
