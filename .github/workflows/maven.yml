@@ -22,9 +22,10 @@ jobs:
 
     - name: Publish Maven Package
       working-directory: connector
-      run: mvn deploy
-      with:
-        repo-token: ${{ secrets.GITHUB_TOKEN }}
+      run: mvn --settings settings.xml deploy
+      env:
+        GITHUB_USERNAME: x-access-token
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
     # - name: Copy jars to Blob Storage
     #   env:
