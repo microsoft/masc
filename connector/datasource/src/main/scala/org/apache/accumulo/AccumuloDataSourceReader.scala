@@ -24,6 +24,7 @@ import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition,
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.sources.Filter
 import scala.collection.JavaConverters._
+import org.apache.log4j.Logger
 
 // TODO: https://github.com/apache/spark/blob/053dd858d38e6107bc71e0aa3a4954291b74f8c8/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsReportPartitioning.java
 // in head of spark github repo
@@ -38,6 +39,7 @@ import scala.collection.mutable.ArrayBuffer
 @SerialVersionUID(1L)
 class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
   extends DataSourceReader with Serializable with SupportsPushDownRequiredColumns with SupportsPushDownFilters {
+  private val logger = Logger.getLogger(classOf[AccumuloDataSourceReader])
 
   private val defaultMaxPartitions = 200
 
@@ -74,8 +76,10 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
     this.filters = result.supportedFilters.toArray
 
-    if (result.serializedFilter.length > 0)
+    if (result.serializedFilter.length > 0) {
       this.filterInJuel = Some("${" + result.serializedFilter + "}")
+      logger.info(s"JUEL filter: ${this.filterInJuel}")
+    }
 
     result.unsupportedFilters.toArray
   }
@@ -89,14 +93,15 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     // can use .putAll(options.asMap()) due to https://github.com/scala/bug/issues/10418
     options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
 
-    val client = Accumulo.newClient().from(properties).build()
     val splits = ArrayBuffer(Array.empty[Byte], Array.empty[Byte])
-    splits.insertAll(1, client
-        .tableOperations().listSplits(tableName, maxPartitions)
-        .asScala
-        .map(_.getBytes)
-    )
+
+    val client = Accumulo.newClient().from(properties).build()
+    val tableSplits = client.tableOperations().listSplits(tableName, maxPartitions) 
     client.close()
+
+    splits.insertAll(1, tableSplits.asScala.map(_.getBytes))
+
+    logger.info(s"Splits '${tableSplits}'")
 
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
@@ -118,7 +123,13 @@ class PartitionReaderFactory(tableName: String,
                              jsonSchema: String,
                              filterInJuel: Option[String])
   extends InputPartition[InternalRow] {
+
   def createPartitionReader: InputPartitionReader[InternalRow] = {
+    val startText = if (start.length == 0) "-inf" else s"'${new Text(start)}'"
+    val stopText = if (stop.length == 0) "inf" else s"'${new Text(stop)}'"
+
+    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for ${startText} to ${stopText}")
+
     new AccumuloInputPartitionReader(tableName, start, stop, schema, mleapFields, properties, rowKeyColumn, jsonSchema, filterInJuel)
   }
 }

@@ -32,8 +32,11 @@ import org.apache.avro.io.BinaryEncoder;
 import org.apache.avro.io.DatumWriter;
 import org.apache.avro.io.EncoderFactory;
 import org.apache.avro.specific.SpecificDatumWriter;
+import org.apache.log4j.Logger;
 
 public class AvroRowSerializer {
+  private final static Logger logger = Logger.getLogger(AvroRowSerializer.class);
+
   // avro writer infra
   private ByteArrayOutputStream binaryBuffer = new ByteArrayOutputStream();
   private DatumWriter<IndexedRecord> writer;
@@ -62,8 +65,10 @@ public class AvroRowSerializer {
 
         // initialize source to target mapping
         this.sourceIndicies = new int[fieldList.size()];
-        for (Field field : prunedSchema.getFields())
+        for (Field field : prunedSchema.getFields()) {
+          logger.info("Pruned field: " + field.name());
           this.sourceIndicies[field.pos()] = schema.getField(field.name()).pos();
+        }
 
         schema = prunedSchema;
       }

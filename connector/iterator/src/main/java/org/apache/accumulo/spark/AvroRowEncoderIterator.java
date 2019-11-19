@@ -45,10 +45,12 @@ import org.apache.accumulo.spark.record.AvroFastRecord;
 import org.apache.accumulo.spark.record.AvroSchemaBuilder;
 import org.apache.accumulo.spark.record.RowBuilderCellConsumer;
 import org.apache.accumulo.spark.record.RowBuilderField;
+import org.apache.accumulo.spark.util.StopWatch;
 import org.apache.avro.Schema;
 import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
+import org.apache.log4j.Logger;
 
 import com.google.gson.Gson;
 import java.nio.file.*;
@@ -69,6 +71,8 @@ import java.nio.file.*;
  * </ul>
  */
 public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value>, OptionDescriber {
+  private final static Logger logger = Logger.getLogger(AvroRowEncoderIterator.class);
+
   /**
    * Key for the schema input option.
    */
@@ -134,7 +138,13 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
   private String exceptionLogFile;
 
+  // private StopWatch stopWatchCellCollection;
+
+  // private StopWatch stopWatchSerialization;
+
   private void logException(Throwable ex) {
+    logger.error("Error", ex);
+
     if (this.exceptionLogFile != null) {
       try {
         StringWriter sw = new StringWriter();
@@ -170,12 +180,17 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
       if (StringUtils.isEmpty(this.exceptionLogFile))
         this.exceptionLogFile = null;
 
+      // this.stopWatchCellCollection = new StopWatch();
+      // this.stopWatchSerialization = new StopWatch();
+
       // build the lookup table for the cells we care for from the user-supplied JSON
       // avoid Jackson to overcome version mismatch and compliance requirements
       RowBuilderField[] schemaFields = new Gson().fromJson(options.get(SCHEMA), RowBuilderField[].class);
 
       // union( user-supplied fields + computed fields )
       ArrayList<RowBuilderField> allFields = new ArrayList<>(Arrays.asList(schemaFields));
+
+      logger.info("Initialize processors");
 
       this.processors = Arrays.stream(new AvroRowConsumer[] {
           // compute additional columns
@@ -195,6 +210,10 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
       // build the AVRO schema
       Schema schema = AvroSchemaBuilder.buildSchema(allFields);
+
+      for (RowBuilderField rowBuilderField : allFields)
+        logger.info("Output field: " + rowBuilderField.getColumnFamily() + ":" + rowBuilderField.getColumnQualifier()
+            + ":" + rowBuilderField.getType());
 
       // initialize the record builder
       this.rootRecord = new AvroFastRecord(schema);
@@ -236,8 +255,22 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
         boolean foundConsumer = false;
         do {
           // no more input row?
-          if (!sourceIter.hasTop())
+          if (!sourceIter.hasTop()) {
+
+            // // print performance statistics
+            // logger.info(
+            //     String.format("Timing %22s: %.2fms", "cell collection", this.stopWatchCellCollection.getAverage()));
+
+            // logger
+            //     .info(String.format("Timing %22s: %.2fms", "serialization", this.stopWatchSerialization.getAverage()));
+
+            // for (AvroRowConsumer processor : this.processors)
+            //   logger.info(String.format("Timing %22s: %.2fms", processor.getName(), processor.getAverageConsumeTime()));
+
             return;
+          }
+
+          // this.stopWatchCellCollection.start();
 
           currentRow = new Text(sourceIter.getTopKey().getRow());
 
@@ -267,6 +300,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
                 consumer.consume(sourceTopKey, value);
               }
             }
+
+            // this.stopWatchCellCollection.stop();
 
             sourceIter.next();
           }
@@ -298,7 +333,11 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     }
 
     // serialize the record
-    return this.serializer.serialize(record);
+    // this.stopWatchSerialization.start();
+    byte[] data = this.serializer.serialize(record);
+    // this.stopWatchSerialization.stop();
+
+    return data;
   }
 
   public Schema getSchema() {

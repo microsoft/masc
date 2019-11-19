@@ -40,9 +40,6 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     private val rowKeyIdx = schema.fieldIndex(properties.getProperty("rowkey"))
 
     private val client = Accumulo.newClient().from(properties).build()
-    // create table if it's not there
-    if (!client.tableOperations.exists(tableName)) 
-        client.tableOperations.create(tableName)
     
     // TODO: new BatchWriterConfig().setMaxWriteThreads(numThreads).setMaxMemory(batchMemory)
     private val batchWriter = client.createBatchWriter(tableName)
