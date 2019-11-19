@@ -20,11 +20,11 @@
   <parent>
     <groupId>com.microsoft.masc</groupId>
     <artifactId>accumulo-spark</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
   <artifactId>accumulo-spark-iterator</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <name>Apache Spark Connector for Accumulo Iterator</name>
   <properties>
     <encoding>UTF-8</encoding>
