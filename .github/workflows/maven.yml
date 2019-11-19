@@ -19,12 +19,17 @@ jobs:
       working-directory: connector
       run: mvn -B package
 
-    - name: Copy jars to Blob Storage
-      env:
-        AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING  }}
-      uses: azure/CLI@v1
-      with:
-        azcliversion: latest
-        inlineScript: |
-          az storage blob upload-batch -s connector/datasource/target --pattern *-shaded.jar -d accumulo-spark-jars
-          az storage blob upload-batch -s conndector/iterator/target --pattern *-shaded.jar -d accumulo-spark-jars
+
+    - name: Publish Maven Package
+      working-directory: connector
+      run: mvn deploy
+
+    # - name: Copy jars to Blob Storage
+    #   env:
+    #     AZURE_STORAGE_CONNECTION_STRING: ${{ secrets.AZURE_STORAGE_CONNECTION_STRING  }}
+    #   uses: azure/CLI@v1
+    #   with:
+    #     azcliversion: latest
+    #     inlineScript: |
+    #       az storage blob upload-batch -s connector/datasource/target --pattern *-shaded.jar -d accumulo-spark-jars
+    #       az storage blob upload-batch -s conndector/iterator/target --pattern *-shaded.jar -d accumulo-spark-jars
