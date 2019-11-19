@@ -138,9 +138,9 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
   private String exceptionLogFile;
 
-  private StopWatch stopWatchCellCollection;
+  // private StopWatch stopWatchCellCollection;
 
-  private StopWatch stopWatchSerialization;
+  // private StopWatch stopWatchSerialization;
 
   private void logException(Throwable ex) {
     logger.error("Error", ex);
@@ -180,8 +180,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
       if (StringUtils.isEmpty(this.exceptionLogFile))
         this.exceptionLogFile = null;
 
-      this.stopWatchCellCollection = new StopWatch();
-      this.stopWatchSerialization = new StopWatch();
+      // this.stopWatchCellCollection = new StopWatch();
+      // this.stopWatchSerialization = new StopWatch();
 
       // build the lookup table for the cells we care for from the user-supplied JSON
       // avoid Jackson to overcome version mismatch and compliance requirements
@@ -257,20 +257,20 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
           // no more input row?
           if (!sourceIter.hasTop()) {
 
-            // print performance statistics
-            logger.info(
-                String.format("Timing %22s: %.2fms", "cell collection", this.stopWatchCellCollection.getAverage()));
+            // // print performance statistics
+            // logger.info(
+            //     String.format("Timing %22s: %.2fms", "cell collection", this.stopWatchCellCollection.getAverage()));
 
-            logger
-                .info(String.format("Timing %22s: %.2fms", "serialization", this.stopWatchSerialization.getAverage()));
+            // logger
+            //     .info(String.format("Timing %22s: %.2fms", "serialization", this.stopWatchSerialization.getAverage()));
 
-            for (AvroRowConsumer processor : this.processors)
-              logger.info(String.format("Timing %22s: %.2fms", processor.getName(), processor.getAverageConsumeTime()));
+            // for (AvroRowConsumer processor : this.processors)
+            //   logger.info(String.format("Timing %22s: %.2fms", processor.getName(), processor.getAverageConsumeTime()));
 
             return;
           }
 
-          this.stopWatchCellCollection.start();
+          // this.stopWatchCellCollection.start();
 
           currentRow = new Text(sourceIter.getTopKey().getRow());
 
@@ -301,7 +301,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
               }
             }
 
-            this.stopWatchCellCollection.stop();
+            // this.stopWatchCellCollection.stop();
 
             sourceIter.next();
           }
@@ -333,9 +333,9 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     }
 
     // serialize the record
-    this.stopWatchSerialization.start();
+    // this.stopWatchSerialization.start();
     byte[] data = this.serializer.serialize(record);
-    this.stopWatchSerialization.stop();
+    // this.stopWatchSerialization.stop();
 
     return data;
   }
