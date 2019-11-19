@@ -22,11 +22,7 @@ jobs:
 
     - name: Publish Maven Package
       working-directory: connector
-      run: mvn --settings settings.xml deploy:deploy-file \
-          -DrepositoryId=github \
-          -Dfile=iterator/target/accumulo-spark-iterator-1.0.1-shaded.jar \
-          -Durl=https://maven.pkg.github.com/Microsoft/masc \
-          -DpomFile=iterator/pom.xml
+      run: mvn --settings settings.xml deploy:deploy-file -DrepositoryId=github -Dfile=iterator/target/accumulo-spark-iterator-1.0.1-shaded.jar -Durl=https://maven.pkg.github.com/Microsoft/masc -DpomFile=iterator/pom.xml
       env:
         GITHUB_USERNAME: x-access-token
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
