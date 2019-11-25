@@ -335,3 +335,4 @@ ASALocalRun/
 .vscode
 target/
 .settings/
+.ipynb_checkpoints/

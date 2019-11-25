@@ -28,7 +28,7 @@ import org.apache.hadoop.io.Text;
 
 public abstract class AvroRowConsumer {
 
-  private StopWatch stopWatchConsume = new StopWatch();
+  // private StopWatch stopWatchConsume = new StopWatch();
 
   /**
    * Process the row.
@@ -39,22 +39,18 @@ public abstract class AvroRowConsumer {
    *         stopped (e.g. does not match a filter).
    */
   public boolean consume(Text rowKey, IndexedRecord record) throws IOException {
-    this.stopWatchConsume.start();
+    // this.stopWatchConsume.start();
 
     boolean ret = this.consumeInternal(rowKey, record);
-    if (ret)
-      this.stopWatchConsume.stop();
+    // if (ret)
+    // this.stopWatchConsume.stop();
 
     return ret;
   }
 
-  public double getAverageConsumeTime() {
-    return this.stopWatchConsume.getAverage();
-  }
-
-  public long getRows() {
-    return this.stopWatchConsume.getN();
-  }
+  // public double getAverageConsumeTime() {
+  // return this.stopWatchConsume.getAverage();
+  // }
 
   public String getName() {
     return getClass().getSimpleName();

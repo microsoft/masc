@@ -91,12 +91,19 @@ public class AvroRowMLeap extends AvroRowConsumer {
     Path mleapFilePath = fs.getPath("/mleap.zip");
     Files.write(mleapFilePath, mleapBundle, StandardOpenOption.CREATE);
 
-    AvroRowMLeap ret = new AvroRowMLeap(mleapFilePath);
+    MleapContext mleapContext = new ContextBuilder().createMleapContext();
 
-    logger.info(String.format("Decompressing model (%.1fkb) %.2fms", mleapBundleBase64.length() / 1024.0,
-        (System.nanoTime() - start) / 1e6));
+    try (
+        FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), mleapFilePath, new HashMap<String, Object>())) {
+      try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
+        Transformer transformer = (Transformer) bf.load(mleapContext).get().root();
 
-    return ret;
+        logger.info(String.format("Decompressing model (%.1fkb) %.2fms", mleapBundleBase64.length() / 1024.0,
+            (System.nanoTime() - start) / 1e6));
+
+        return new AvroRowMLeap(transformer);
+      }
+    }
   }
 
   /**
@@ -148,17 +155,8 @@ public class AvroRowMLeap extends AvroRowConsumer {
   private StructType mleapSchema;
   private Transformer transformer;
 
-  private AvroRowMLeap(Path modelFilePath) throws IOException {
-    this.modelFilePath = modelFilePath;
-
-    MleapContext mleapContext = new ContextBuilder().createMleapContext();
-
-    try (FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), this.modelFilePath,
-        new HashMap<String, Object>())) {
-      try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
-        this.transformer = (Transformer) bf.load(mleapContext).get().root();
-      }
-    }
+  private AvroRowMLeap(Transformer transformer) {
+    this.transformer = transformer;
 
     // logger.info("Transformer: " + this.transformer.model());
     // logger.info("Input schema: " + this.transformer.inputSchema());
@@ -208,16 +206,18 @@ public class AvroRowMLeap extends AvroRowConsumer {
 
   @Override
   public AvroRowMLeap clone() {
-    try {
-      AvroRowMLeap copy = new AvroRowMLeap(this.modelFilePath);
+    AvroRowMLeap copy = new AvroRowMLeap(this.transformer);
 
-      copy.initialize(schema);
+    copy.initialize(schema);
 
-      return copy;
-    } catch (IOException ioe) {
-      // shouldn't occur as it should already happen in the constructor
-      return null;
-    }
+    return copy;
+  }catch(
+
+  IOException ioe)
+  {
+    // shouldn't occur as it should already happen in the constructor
+    return null;
+  }
   }
 
   @Override
