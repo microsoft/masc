@@ -56,15 +56,15 @@ public class AvroVariableMapper extends VariableMapper {
       if (field.schema().getType() == Type.RECORD) {
         for (Field nestedField : field.schema().getFields()) {
           // find the corresponding java class
-          Class<?> nestedFieldClass = RowBuilderType.valueOf(nestedField.getProp(AvroSchemaBuilder.ROWBUILDERTYPE_PROP))
-              .getJavaClass();
+          Class<?> nestedFieldClass = RowBuilderType
+              .valueOf(nestedField.getProp(AvroSchemaBuilder.PROPERTY_ROWBUILDERTYPE)).getJavaClass();
 
           for (String alias : nestedField.aliases())
             this.aliasMap.put(alias, new AvroVariableExpression(nestedFieldClass, field.pos(), nestedField.pos()));
         }
       } else {
         // find the corresponding java class
-        Class<?> fieldClass = RowBuilderType.valueOf(field.getProp(AvroSchemaBuilder.ROWBUILDERTYPE_PROP))
+        Class<?> fieldClass = RowBuilderType.valueOf(field.getProp(AvroSchemaBuilder.PROPERTY_ROWBUILDERTYPE))
             .getJavaClass();
         for (String alias : field.aliases())
           this.aliasMap.put(alias, new AvroVariableExpression(fieldClass, field.pos()));

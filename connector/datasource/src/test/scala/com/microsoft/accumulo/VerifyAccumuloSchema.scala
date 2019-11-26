@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import java.io.ByteArrayOutputStream
 
@@ -44,11 +44,41 @@ class VerifyAccumuloSchema extends FunSuite {
       .add("cf3", DataTypes.StringType, false)
 
     val jsonActual = AvroUtil.catalystSchemaToJson(schema).json
-    val jsonExpected = "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"fvn\":\"v0\",\"t\":\"STRING\"}" +
-      ",{\"cf\":\"cf1\",\"cq\":\"cq2\",\"fvn\":\"v1\",\"t\":\"DOUBLE\"}" +
-      ",{\"cf\":\"cf2\",\"cq\":\"cq_a\",\"fvn\":\"v2\",\"t\":\"INTEGER\"}" +
-      ",{\"cf\":\"cf2\",\"cq\":\"cq_b\",\"fvn\":\"v3\",\"t\":\"FLOAT\"}" +
-      ",{\"cf\":\"cf3\",\"fvn\":\"v4\",\"t\":\"STRING\"}]"
+    val jsonExpected = "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"fvn\":\"v0\",\"t\":\"STRING\",\"o\":true}" +
+      ",{\"cf\":\"cf1\",\"cq\":\"cq2\",\"fvn\":\"v1\",\"t\":\"DOUBLE\",\"o\":true}" +
+      ",{\"cf\":\"cf2\",\"cq\":\"cq_a\",\"fvn\":\"v2\",\"t\":\"INTEGER\",\"o\":true}" +
+      ",{\"cf\":\"cf2\",\"cq\":\"cq_b\",\"fvn\":\"v3\",\"t\":\"FLOAT\",\"o\":true}" +
+      ",{\"cf\":\"cf3\",\"fvn\":\"v4\",\"t\":\"STRING\",\"o\":true}]"
+
+    assert(jsonActual == jsonExpected)
+  }
+
+  test("Validate catalyst schema to json serialization with pruned output schema") {
+    val inputSchema = (new StructType)
+      .add(StructField("cf1", (new StructType)
+        .add("cq1", DataTypes.StringType, true)
+        .add("cq2", DataTypes.DoubleType, true)
+        , true))
+      .add(StructField("cf2", (new StructType)
+        .add("cq_a", DataTypes.IntegerType, true)
+        .add("cq_b", DataTypes.FloatType, true)
+        , true))
+      .add("cf3", DataTypes.StringType, false)
+      .add("cf4", DataTypes.LongType, false)
+
+    val outputSchema = (new StructType)
+      .add(StructField("cf1", (new StructType)
+        .add("cq1", DataTypes.StringType, true)
+        , true))
+      .add("cf3", DataTypes.StringType, false)
+
+    val jsonActual = AvroUtil.catalystSchemaToJson(inputSchema, outputSchema).json
+    val jsonExpected = "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"fvn\":\"v0\",\"t\":\"STRING\",\"o\":true}" +
+      ",{\"cf\":\"cf1\",\"cq\":\"cq2\",\"fvn\":\"v1\",\"t\":\"DOUBLE\",\"o\":false}" +
+      ",{\"cf\":\"cf2\",\"cq\":\"cq_a\",\"fvn\":\"v2\",\"t\":\"INTEGER\",\"o\":false}" +
+      ",{\"cf\":\"cf2\",\"cq\":\"cq_b\",\"fvn\":\"v3\",\"t\":\"FLOAT\",\"o\":false}" +
+      ",{\"cf\":\"cf3\",\"fvn\":\"v4\",\"t\":\"STRING\",\"o\":true}" +
+      ",{\"cf\":\"cf4\",\"fvn\":\"v5\",\"t\":\"LONG\",\"o\":false}]"
 
     assert(jsonActual == jsonExpected)
   }
@@ -97,5 +127,14 @@ class VerifyAccumuloSchema extends FunSuite {
       "\"cf2\":{\"cq_a\":{\"int\":1},\"cq_b\":{\"float\":1.2}}}"
 
     assert(jsonActual == jsonExpected)
+  }
+
+  test("Validate unsupported types") {
+    val schema = (new StructType)
+      .add("cf3", DataTypes.CalendarIntervalType, false)
+
+    assertThrows[UnsupportedOperationException] {
+      AvroUtil.catalystSchemaToAvroSchema(schema)
+    }
   }
 }

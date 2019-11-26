@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import org.apache.avro.{Schema, SchemaBuilder}
 import org.apache.spark.sql.types.{DataType, DataTypes, StructField, StructType}
@@ -28,48 +28,59 @@ import scala.beans.BeanProperty
 case class RowBuilderField(@BeanProperty val cf: String,  // column family
                            @BeanProperty val cq: String,  // column qualifier
                            @BeanProperty val fvn: String, // filter variable name
-                           @BeanProperty val t: String)   // type
+                           @BeanProperty val t: String,   // type
+                           @BeanProperty val o: Boolean   // output
+                           )
 
 case class JsonSchema(json: String, attributeToVariableMapping: Map[String, String])
 
 @SerialVersionUID(1L)
 object AvroUtil {
-  def catalystSchemaToJson(schema: StructType): JsonSchema = {
+  def catalystSchemaToJson(inputSchema: StructType): JsonSchema = catalystSchemaToJson(inputSchema, inputSchema)
+
+  def catalystSchemaToJson(inputSchema: StructType, outputSchema: StructType): JsonSchema = {
 
     var attributeToVariableMapping = scala.collection.mutable.Map[String,  String]()
 
     var i = 0
-    val selectedFields = schema.fields.flatMap(cf =>
+    val selectedFields = inputSchema.fields.flatMap(cf => {
+      val outputField = outputSchema.find(f => f.name == cf.name)
+
       cf.dataType match {
         case cft: StructType => cft.fields.map(cq =>
           RowBuilderField(
             cf.name,
             cq.name,
             {
-              val variableName = s"v${i}"
+              val variableName = s"v$i"
               attributeToVariableMapping += (s"${cf.name}.${cq.name}" -> variableName)
               i += 1
 
               variableName
             },
             // TODO: toUpperCase() is weird...
-            cq.dataType.typeName.toUpperCase
+            cq.dataType.typeName.toUpperCase,
+            // either the column family is not need -> output = false
+            // otherwise we need to check if the column qualifier is present in the output list
+            if (outputField.isEmpty) false else outputField.get.dataType.asInstanceOf[StructType].exists(f => f.name == cq.name)
           )
         )
         case _: DataType => Seq(RowBuilderField(
-            cf.name,
-            null,
-            {
-              val variableName = s"v${i}"
-              attributeToVariableMapping += (s"${cf.name}" -> variableName)
-              i += 1
+          cf.name,
+          null,
+          {
+            val variableName = s"v$i"
+            attributeToVariableMapping += (s"${cf.name}" -> variableName)
+            i += 1
 
-              variableName
-            },
-            // TODO: toUpperCase() is weird...
-            cf.dataType.typeName.toUpperCase
-          ))
-      })
+            variableName
+          },
+          // TODO: toUpperCase() is weird...
+          cf.dataType.typeName.toUpperCase,
+          outputField.isDefined
+        ))
+      }
+    })
 
     try {
       val mapper = new ObjectMapper()
@@ -115,7 +126,7 @@ object AvroUtil {
     val fieldBuilder = SchemaBuilder.record("root")
       .fields()
 
-    schema.fields.foldLeft(fieldBuilder) { (builder, field) =>
+    schema.fields.foldLeft(fieldBuilder) { (_, field) =>
         field.dataType match {
           // nested fields
           case cft: StructType =>

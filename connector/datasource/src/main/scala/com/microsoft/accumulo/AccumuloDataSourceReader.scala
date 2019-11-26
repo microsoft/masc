@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import org.apache.accumulo.core.client.Accumulo
 import org.apache.spark.sql.catalyst.InternalRow
@@ -47,24 +47,23 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   val rowKeyColumn = options.get("rowkey").orElse("rowkey")
 
-  private val baseSchema = StructType(schema.add(rowKeyColumn, DataTypes.StringType, nullable = true).fields)
+  private var fullSchema = {
+    // add rowKey
+    val baseSchema = schema.add(rowKeyColumn, DataTypes.StringType, nullable = true)
 
-  // needs to be nullable so that Avro doesn't barf when we want to add another column
-  // add any output fields we find in a mleap pipeline
-  private var mleapFields = MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse(""))
-  private var requiredSchema = StructType(baseSchema ++ mleapFields)
+    // add any output fields we find in a mleap pipeline
+    val mleapFields = MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse(""))
+
+    StructType(baseSchema ++ mleapFields)
+  }
+
+  // initialize output schema with full schema
+  private var requiredSchema = fullSchema
 
   private var filterInJuel: Option[String] = None
 
-  // SupportsPushDownRequiredColumns implementation
   override def pruneColumns(requiredSchema: StructType): Unit = {
       this.requiredSchema = requiredSchema
-  }
-
-  private def jsonSchema() = {
-    val schemaWithoutRowKey = new StructType(requiredSchema.fields.filter(_.name != rowKeyColumn))
-  
-    AvroUtil.catalystSchemaToJson(schemaWithoutRowKey)
   }
 
   def readSchema: StructType = requiredSchema
@@ -74,6 +73,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     // https://issues.apache.org/jira/browse/SPARK-17636
     // https://github.com/apache/spark/pull/22535
 
+    val jsonSchema = AvroUtil.catalystSchemaToJson(fullSchema)
     val result = new FilterToJuel(jsonSchema.attributeToVariableMapping, rowKeyColumn)
       .serializeFilters(filters, options.get("filter").orElse(""))
 
@@ -109,8 +109,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
         new PartitionReaderFactory(tableName, splits(i - 1), splits(i),
-          baseSchema, mleapFields, properties, rowKeyColumn,
-          jsonSchema.json, filterInJuel)
+          fullSchema, requiredSchema, properties, rowKeyColumn, filterInJuel)
       ).asJava
     )
   }
@@ -119,11 +118,10 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 class PartitionReaderFactory(tableName: String,
                              start: Array[Byte],
                              stop: Array[Byte],
-                             schema: StructType,
-                             mleapFields: Seq[StructField],
+                             inputSchema: StructType,
+                             outputSchema: StructType,
                              properties: java.util.Properties,
                              rowKeyColumn: String,
-                             jsonSchema: String,
                              filterInJuel: Option[String])
   extends InputPartition[InternalRow] {
 
@@ -133,6 +131,6 @@ class PartitionReaderFactory(tableName: String,
 
     Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for ${startText} to ${stopText}")
 
-    new AccumuloInputPartitionReader(tableName, start, stop, schema, mleapFields, properties, rowKeyColumn, jsonSchema, filterInJuel)
+    new AccumuloInputPartitionReader(tableName, start, stop, inputSchema, outputSchema, properties, rowKeyColumn, filterInJuel)
   }
 }

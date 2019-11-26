@@ -26,7 +26,9 @@ import org.apache.avro.SchemaBuilder;
  * Builds the AVRO Schema from the user-supplied JSON encoded schema.
  */
 public class AvroSchemaBuilder {
-  public static final String ROWBUILDERTYPE_PROP = "rowBuilderType";
+  public static final String PROPERTY_ROWBUILDERTYPE = "rowBuilderType";
+
+  public static final String PROPERTY_OUTPUT = "output";
 
   private static SchemaBuilder.FieldAssembler<Schema> addAvroField(SchemaBuilder.FieldAssembler<Schema> builder,
       RowBuilderField field, String name) {
@@ -43,7 +45,9 @@ public class AvroSchemaBuilder {
 
     SchemaBuilder.FieldTypeBuilder<Schema> intermediate = fieldBuilder
         // encode rowBuilderType so we can only operator on schema
-        .prop(ROWBUILDERTYPE_PROP, type.name())
+        .prop(PROPERTY_ROWBUILDERTYPE, type.name())
+        // encode if this is an output field
+        .prop(PROPERTY_OUTPUT, field.isOutput())
         // all fields are optional
         .type();
 
@@ -91,13 +95,19 @@ public class AvroSchemaBuilder {
 
   private static SchemaBuilder.FieldAssembler<Schema> closeFieldAssembler(
       SchemaBuilder.FieldAssembler<Schema> rootAssembler, SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler,
-      String columnFamily) {
+      String columnFamily, boolean output) {
 
     if (columnFieldsAssembler == null)
       return rootAssembler;
 
     // add nested type to to root assembler
-    return rootAssembler.name(columnFamily).type(columnFieldsAssembler.endRecord()).noDefault();
+    return rootAssembler
+        // name the record field
+        .name(columnFamily)
+        // any of the column sub fields need to be output?
+        .prop(PROPERTY_OUTPUT, output)
+        // it's a record type
+        .type(columnFieldsAssembler.endRecord()).noDefault();
   }
 
   public static Schema buildSchema(Collection<RowBuilderField> schemaFields) {
@@ -108,6 +118,7 @@ public class AvroSchemaBuilder {
     // generated on the MMLSpark/Scala side
     String lastColumnFamily = null;
     SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = null;
+    boolean output = false;
     for (RowBuilderField schemaField : schemaFields) {
 
       String columnFamily = schemaField.getColumnFamily();
@@ -117,28 +128,33 @@ public class AvroSchemaBuilder {
         if (lastColumnFamily == null || !lastColumnFamily.equals(columnFamily)) {
 
           // close previous record
-          rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily);
+          rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily, output);
 
           // open new record
           columnFieldsAssembler = SchemaBuilder.record(columnFamily).fields();
+
+          output = false;
         }
+
+        // true if any of the column qualifiers is an output field
+        output |= (boolean) schemaField.isOutput();
 
         // add the current field
         columnFieldsAssembler = addAvroField(columnFieldsAssembler, schemaField, columnQualifier);
       } else {
         // close previous record
-        rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily);
+        rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily, output);
         columnFieldsAssembler = null;
+        output = false;
 
         // add the top-level field
         rootAssembler = addAvroField(rootAssembler, schemaField, columnFamily);
       }
 
       lastColumnFamily = columnFamily;
-
     }
 
-    rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily);
+    rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily, output);
 
     // setup serialization
     return rootAssembler.endRecord();

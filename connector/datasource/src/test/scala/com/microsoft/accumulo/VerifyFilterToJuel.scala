@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import java.io.ByteArrayOutputStream
 

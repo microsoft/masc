@@ -46,7 +46,6 @@ public class AvroColumnPruningTest {
 		SortedMap<Key, Value> map = new TreeMap<>();
 		map.put(new Key("key1", "cf1", "cq1"), new Value(new LongLexicoder().encode(3L)));
 		map.put(new Key("key1", "cf2", ""), new Value("abc"));
-
 		map.put(new Key("key2", "cf2"), new Value("def"));
 
 		SortedMapIterator parentIterator = new SortedMapIterator(map);
@@ -54,8 +53,7 @@ public class AvroColumnPruningTest {
 
 		Map<String, String> options = new HashMap<>();
 		options.put(AvroRowEncoderIterator.SCHEMA,
-				"[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"long\"},{\"cf\":\"cf2\",\"t\":\"STRING\"}]");
-		options.put(AvroRowEncoderIterator.PRUNED_COLUMNS, "cf2");
+				"[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"long\",\"o\":false},{\"cf\":\"cf2\",\"t\":\"STRING\",\"o\":true}]");
 
 		iterator.init(parentIterator, options, new DefaultIteratorEnvironment());
 		iterator.seek(new Range(), AvroUtil.EMPTY_SET, false);

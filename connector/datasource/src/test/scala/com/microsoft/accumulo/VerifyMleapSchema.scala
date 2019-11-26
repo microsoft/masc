@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import org.junit.runner.RunWith
 import org.scalatest.FunSuite

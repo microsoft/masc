@@ -35,6 +35,9 @@ public class RowBuilderField {
   @SerializedName("fvn")
   private String filterVariableName;
 
+  @SerializedName("o")
+  private boolean output = true;
+
   private boolean nullable = true;
 
   public RowBuilderField() {
@@ -49,6 +52,18 @@ public class RowBuilderField {
 
   public RowBuilderType getRowBuilderType() {
     return RowBuilderType.valueOfIgnoreCase(this.type);
+  }
+
+  /**
+   * @return true if this field should be output, otherwise it's just needed for
+   *         intermediate processing (e.g. filtering).
+   */
+  public boolean isOutput() {
+    return output;
+  }
+
+  public void setOutput(boolean output) {
+    this.output = output;
   }
 
   /**

@@ -55,7 +55,7 @@ public class AvroRowEncoderIteratorTest {
     AvroRowEncoderIterator iterator = new AvroRowEncoderIterator();
 
     Map<String, String> options = new HashMap<>();
-    options.put(AvroRowEncoderIterator.SCHEMA, "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"STRING\"}]");
+    options.put(AvroRowEncoderIterator.SCHEMA, "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"STRING\",\"o\":true}]");
 
     iterator.init(parentIterator, options, new DefaultIteratorEnvironment());
     iterator.seek(new Range(), AvroUtil.EMPTY_SET, false);

@@ -89,11 +89,6 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   public static final String MLEAP_FILTER = "mleapfilter";
 
   /**
-   * Key for pruned columns.
-   */
-  public static final String PRUNED_COLUMNS = "prunedcolumns";
-
-  /**
    * Key for path to exception log file. Can be handy if the logs are not
    * populated.
    */
@@ -129,12 +124,12 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   /**
    * The current key.
    */
-  private Key topKey = null;
+  private Key topKey;
 
   /**
    * The current value.
    */
-  private Value topValue = null;
+  private Value topValue;
 
   private String exceptionLogFile;
 
@@ -173,6 +168,8 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
   public void init(SortedKeyValueIterator<Key, Value> source, Map<String, String> options, IteratorEnvironment env)
       throws IOException {
     try {
+      // logException(new Exception("init"));
+
       this.sourceIter = source;
 
       // keep the log file destination around
@@ -226,7 +223,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
         consumer.initialize(schema);
 
       // setup binary serializer
-      this.serializer = new AvroRowSerializer(schema, options.get(PRUNED_COLUMNS));
+      this.serializer = new AvroRowSerializer(schema);
     } catch (Throwable e) {
       logException(e);
       throw e;
@@ -398,7 +395,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     // add logging here
     AvroRowEncoderIterator copy = new AvroRowEncoderIterator();
 
-    copy.serializer = new AvroRowSerializer(this.rootRecord.getSchema(), this.serializer.getPrunedColumns());
+    copy.serializer = new AvroRowSerializer(this.rootRecord.getSchema());
     copy.rootRecord = new AvroFastRecord(this.rootRecord.getSchema());
     copy.cellToColumnMap = AvroFastRecord.createCellToFieldMap(copy.rootRecord);
     copy.processors = this.processors.stream().map(AvroRowConsumer::clone).collect(Collectors.toList());

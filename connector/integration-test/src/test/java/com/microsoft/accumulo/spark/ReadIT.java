@@ -1,4 +1,4 @@
-package com.microsoft.accumulo;
+package com.microsoft.accumulo.spark;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -80,7 +80,8 @@ public class ReadIT {
 
             propMap.put("rowkey", "key");
             propMap.put("splits", "r0,r1");
-            sampleDf.write().format("org.apache.accumulo").options(propMap).save();
+            // propMap.put("exceptionlogfile", "/tmp/com.microsoft.accumulo.exception.log");
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
 
             // read from accumulo
             StructType schema = new StructType(
@@ -88,12 +89,17 @@ public class ReadIT {
                                     new StructField("text", DataTypes.StringType, true, Metadata.empty()),
                                     new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
 
-            Dataset<Row> accumuloDf = sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
+            Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
 
-            accumuloDf.select("text").show();
-            // accumuloDf.coalesce(1).orderBy("key").select("text").show();
-            // assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("text"), "this
-            // is bad", "this is good",
+            accumuloDf.show();
+            // accumuloDf.select("text").show();
+            // // accumuloDf.coalesce(1).orderBy("key").select("text").show();
+            // assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("text"),
+            // // expected 0
+            // "this is bad",
+            // // expected 1
+            // "this is good",
+            // // expected 2
             // "we don't know yet");
       }
 
@@ -268,7 +274,7 @@ public class ReadIT {
 
             propMap.put("rowkey", "key");
             propMap.put("splits", "r0,r1");
-            sampleDf.write().format("org.apache.accumulo").options(propMap).save();
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
 
             // try (Scanner scanner = client.createScanner("sample_table",
             // Authorizations.EMPTY)) {
@@ -294,7 +300,7 @@ public class ReadIT {
             // composed
             // accumuloDf.filter("prediction > 0").show(10);
 
-            Dataset<Row> accumuloDf = sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
+            Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
 
             accumuloDf.show(10);
             accumuloDf.select("prediction").show(10);

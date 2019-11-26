@@ -46,7 +46,10 @@ import org.junit.Test;
 public class AvroRowTopLevelTest {
   @Test
   public void testSchemaGeneration() {
-    RowBuilderField[] schemaMappingFields = new RowBuilderField[] { new RowBuilderField("cf1", "cq1", "long", "v0"),
+    RowBuilderField[] schemaMappingFields = new RowBuilderField[] {
+        // row 0
+        new RowBuilderField("cf1", "cq1", "long", "v0"),
+        // row 1
         new RowBuilderField("cf2", null, "double", "v1") };
 
     Schema schema = AvroSchemaBuilder.buildSchema(Arrays.asList(schemaMappingFields));
@@ -89,12 +92,15 @@ public class AvroRowTopLevelTest {
 
     Map<String, String> options = new HashMap<>();
     options.put(AvroRowEncoderIterator.SCHEMA,
-        "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"long\"},{\"cf\":\"cf2\",\"t\":\"STRING\"}]");
+        "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"long\",\"o\":true},{\"cf\":\"cf2\",\"t\":\"STRING\",\"o\":true}]");
 
     iterator.init(parentIterator, options, new DefaultIteratorEnvironment());
     iterator.seek(new Range(), AvroUtil.EMPTY_SET, false);
 
-    RowBuilderField[] schemaMappingFields = new RowBuilderField[] { new RowBuilderField("cf1", "cq1", "long", "v0"),
+    RowBuilderField[] schemaMappingFields = new RowBuilderField[] {
+        // row 0
+        new RowBuilderField("cf1", "cq1", "long", "v0"),
+        // row 1
         new RowBuilderField("cf2", null, "string", "v1") };
 
     Schema schema = AvroSchemaBuilder.buildSchema(Arrays.asList(schemaMappingFields));

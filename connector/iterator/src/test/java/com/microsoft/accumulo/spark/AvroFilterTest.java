@@ -49,7 +49,7 @@ public class AvroFilterTest {
 
     Map<String, String> options = new HashMap<>();
     options.put(AvroRowEncoderIterator.SCHEMA,
-        "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"long\",\"fvn\":\"v0\"},{\"cf\":\"cf1\",\"cq\":\"cq2\",\"t\":\"string\"},{\"cf\":\"cf2\",\"t\":\"STRING\",\"fvn\":\"v1\"}]");
+        "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"long\",\"fvn\":\"v0\",\"o\":true},{\"cf\":\"cf1\",\"cq\":\"cq2\",\"t\":\"string\",\"o\":true},{\"cf\":\"cf2\",\"t\":\"STRING\",\"o\":true,\"fvn\":\"v1\",\"o\":true}]");
 
     options.put(AvroRowEncoderIterator.FILTER, filter);
 

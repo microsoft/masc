@@ -19,13 +19,14 @@ package com.microsoft.accumulo.spark.processors;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Base64;
 import java.util.Collection;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import com.microsoft.accumulo.spark.record.RowBuilderField;
@@ -54,6 +55,9 @@ import ml.combust.mleap.runtime.frame.Transformer;
 import ml.combust.bundle.BundleFile;
 import ml.combust.mleap.runtime.javadsl.ContextBuilder;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 // https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
@@ -72,17 +76,19 @@ import scala.collection.mutable.WrappedArray;
 public class AvroRowMLeap extends AvroRowConsumer {
   private final static Logger logger = Logger.getLogger(AvroRowMLeap.class);
 
-  /**
-   * Key for mleap bundle option.
-   */
-  public static final String MLEAP_BUNDLE = "mleap";
+  private final static LoadingCache<String, Transformer> transformers = CacheBuilder.newBuilder()
+      // use == for equality comparison as the strings are rather large
+      .weakKeys()
+      // expectation is that iterators are re-inited rather frequenly
+      .expireAfterAccess(5, TimeUnit.MINUTES)
+      // loading function
+      .build(new CacheLoader<String, Transformer>() {
+        public Transformer load(String mleapBundleBase64) throws IOException {
+          return CreateTransformer(mleapBundleBase64);
+        }
+      });
 
-  public static AvroRowMLeap create(Map<String, String> options) throws IOException {
-    String mleapBundleBase64 = options.get(MLEAP_BUNDLE);
-
-    if (StringUtils.isEmpty(mleapBundleBase64))
-      return null;
-
+  private static Transformer CreateTransformer(String mleapBundleBase64) throws IOException {
     long start = System.nanoTime();
 
     byte[] mleapBundle = Base64.getDecoder().decode(mleapBundleBase64);
@@ -101,8 +107,26 @@ public class AvroRowMLeap extends AvroRowConsumer {
         logger.info(String.format("Decompressing model (%.1fkb) %.2fms", mleapBundleBase64.length() / 1024.0,
             (System.nanoTime() - start) / 1e6));
 
-        return new AvroRowMLeap(transformer);
+        return transformer;
       }
+    }
+  }
+
+  /**
+   * Key for mleap bundle option.
+   */
+  public static final String MLEAP_BUNDLE = "mleap";
+
+  public static AvroRowMLeap create(Map<String, String> options) throws IOException {
+    String mleapBundleBase64 = options.get(MLEAP_BUNDLE);
+
+    if (StringUtils.isEmpty(mleapBundleBase64))
+      return null;
+
+    try {
+      return new AvroRowMLeap(transformers.get(mleapBundleBase64));
+    } catch (ExecutionException e) {
+      throw (IOException) e.getCause();
     }
   }
 
@@ -148,7 +172,6 @@ public class AvroRowMLeap extends AvroRowConsumer {
 
   private List<OutputField> outputFields;
   private Schema schema;
-  private Path modelFilePath;
   private DefaultLeapFrame mleapDataFrame;
   private Object[] mleapValues;
   private Field[] mleapAvroFields;
@@ -211,13 +234,6 @@ public class AvroRowMLeap extends AvroRowConsumer {
     copy.initialize(schema);
 
     return copy;
-  }catch(
-
-  IOException ioe)
-  {
-    // shouldn't occur as it should already happen in the constructor
-    return null;
-  }
   }
 
   @Override

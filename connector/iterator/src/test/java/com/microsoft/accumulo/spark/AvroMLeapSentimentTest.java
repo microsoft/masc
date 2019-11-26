@@ -141,7 +141,7 @@ public class AvroMLeapSentimentTest {
 		AvroRowEncoderIterator iterator = new AvroRowEncoderIterator();
 
 		Map<String, String> options = new HashMap<>();
-		options.put(AvroRowEncoderIterator.SCHEMA, "[{\"cf\":\"text\",\"t\":\"string\"}]");
+		options.put(AvroRowEncoderIterator.SCHEMA, "[{\"cf\":\"text\",\"t\":\"string\",\"o\":true}]");
 
 		// pass the model to the iterator
 		options.put(AvroRowMLeap.MLEAP_BUNDLE, mleapBundleBase64);

@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import org.apache.accumulo.core.client.IteratorSetting
 import org.apache.accumulo.core.client.Accumulo
@@ -38,11 +38,10 @@ import org.apache.log4j.Logger
 class AccumuloInputPartitionReader(tableName: String,
                                    start: Array[Byte],
                                    stop: Array[Byte],
-                                   baseSchema: StructType,
-                                   mleapFields: Seq[StructField],
+                                   inputSchema: StructType,
+                                   outputSchema: StructType,
                                    properties: java.util.Properties,
                                    rowKeyColumn: String,
-                                   jsonSchema: String,
                                    filterInJuel: Option[String])
   extends InputPartitionReader[InternalRow] with Serializable {
 
@@ -70,30 +69,31 @@ class AccumuloInputPartitionReader(tableName: String,
     "com.microsoft.accumulo.AvroRowEncoderIterator")
 
   // drop rowKey from schema
-  private val schema = new StructType(baseSchema.fields ++ mleapFields)
-  private val schemaWithoutRowKey = new StructType(schema.fields.filter(_.name != rowKeyColumn))
-  private val schemaWithRowKey = schema
+//  private val schema = new StructType(baseSchema.fields ++ mleapFields)
+//  private val schemaWithRowKey = schema
 
-  // only fetch column families we care for (and don't filter for the mleapFields which are artifically added later)
-  baseSchema.fields.filter(_.name != rowKeyColumn).foreach(f => scanner.fetchColumnFamily(f.name))
+  // only fetch column families we care for (and don't filter for the mleapFields which are artificially added later)
+  inputSchema.fields.filter(_.name != rowKeyColumn).foreach(f => scanner.fetchColumnFamily(f.name))
 
   private val rowKeyColumnIndex = {
-    if (schema.fieldNames.contains(rowKeyColumn))
-      schema.fieldIndex(rowKeyColumn)
+    if (inputSchema.fieldNames.contains(rowKeyColumn))
+      inputSchema.fieldIndex(rowKeyColumn)
     else
       -1
   }
 
   // AVRO Iterator setup
+  val jsonSchema = AvroUtil.catalystSchemaToJson(inputSchema, outputSchema).json
+
   logger.info(s"JSON schema: ${jsonSchema}")
   avroIterator.addOption("schema", jsonSchema)
   if (filterInJuel.isDefined)
     avroIterator.addOption("filter", filterInJuel.get)
 
   // list of output columns
-  val prunedColumns = schema.map(_.name).mkString(",")
-  logger.info(s"Pruned columns: ${prunedColumns}")
-  avroIterator.addOption("prunedcolumns", prunedColumns)
+//  val prunedColumns = schema.map(_.name).mkString(",")
+//  logger.info(s"Pruned columns: ${prunedColumns}")
+//  avroIterator.addOption("prunedcolumns", prunedColumns)
 
   // forward options
   Seq("mleap", "mleapfilter", "exceptionlogfile")
@@ -105,10 +105,13 @@ class AccumuloInputPartitionReader(tableName: String,
   private val scannerIterator = scanner.iterator()
 
   // filter out row-key target from schema generation
-  // populate it
+  private val schemaWithoutRowKey = new StructType(outputSchema.fields.filter(_.name != rowKeyColumn))
+
+  // the serialized AVRO does not contain the row key as it comes with the key/value pair anyway
   private val avroSchema = AvroUtil.catalystSchemaToAvroSchema(schemaWithoutRowKey)
 
-  private val deserializer = new AvroDeserializer(avroSchema, schemaWithRowKey)
+  // pass the schema for the avro input along with the target output schema (incl. row key)
+  private val deserializer = new AvroDeserializer(avroSchema, outputSchema)
   private val reader = new SpecificDatumReader[GenericRecord](avroSchema)
 
   private var decoder: BinaryDecoder = _

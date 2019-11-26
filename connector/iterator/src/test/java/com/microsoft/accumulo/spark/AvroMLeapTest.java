@@ -56,7 +56,7 @@ public class AvroMLeapTest {
 
     Map<String, String> options = new HashMap<>();
     options.put(AvroRowEncoderIterator.SCHEMA,
-        "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"double\",\"fvn\":\"v0\"},{\"cf\":\"cf1\",\"cq\":\"cq2\",\"t\":\"string\"}]");
+        "[{\"cf\":\"cf1\",\"cq\":\"cq1\",\"t\":\"double\",\"fvn\":\"v0\"},{\"cf\":\"cf1\",\"cq\":\"cq2\",\"t\":\"string\",\"o\":true}]");
 
     // pass the model to the iterator
     options.put(AvroRowMLeap.MLEAP_BUNDLE, mleapBundleBase64);

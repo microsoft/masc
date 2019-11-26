@@ -42,8 +42,13 @@ public class AvroJuelTest extends TestCase {
   public void setUp() throws Exception {
     factory = ExpressionFactory.newInstance();
 
-    RowBuilderField[] schemaMappingFields = new RowBuilderField[] { new RowBuilderField("cf1", "cq1", "long", "v0"),
-        new RowBuilderField("cf2", "cq2", "double", "v1"), new RowBuilderField("cf2", "cq3", "string", "v2") };
+    RowBuilderField[] schemaMappingFields = new RowBuilderField[] {
+        // row 0
+        new RowBuilderField("cf1", "cq1", "long", "v0"),
+        // row 1
+        new RowBuilderField("cf2", "cq2", "double", "v1"),
+        // row 2
+        new RowBuilderField("cf2", "cq3", "string", "v2") };
 
     schema = AvroSchemaBuilder.buildSchema(Arrays.asList(schemaMappingFields));
 

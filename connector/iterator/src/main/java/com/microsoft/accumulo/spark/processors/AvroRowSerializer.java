@@ -19,12 +19,12 @@ package com.microsoft.accumulo.spark.processors;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import com.microsoft.accumulo.spark.record.AvroFastRecord;
+import com.microsoft.accumulo.spark.record.AvroSchemaBuilder;
+
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.generic.IndexedRecord;
@@ -44,42 +44,31 @@ public class AvroRowSerializer {
 
   private AvroFastRecord finalRecord;
   private int[] sourceIndicies;
-  private String prunedColumns;
 
-  public AvroRowSerializer(Schema schema, String prunedColumns) {
-    this.prunedColumns = prunedColumns;
+  public AvroRowSerializer(Schema schema) {
+    List<Field> fieldList = schema.getFields().stream()
+        .filter(f -> (boolean) f.getObjectProp(AvroSchemaBuilder.PROPERTY_OUTPUT))
+        .map(f -> new Schema.Field(f.name(), f.schema(), f.doc(), f.defaultVal()))
+        // create the list
+        .collect(Collectors.toList());
 
-    // check if we need to prune the output
-    if (prunedColumns != null) {
-      HashSet<String> columns = new HashSet<String>(Arrays.asList(prunedColumns.split(",")));
+    // check if the schema pruned fields?
+    if (fieldList.size() != schema.getFields().size()) {
+      Schema prunedSchema = Schema.createRecord(fieldList);
+      this.finalRecord = new AvroFastRecord(prunedSchema);
 
-      // quick check if the field list is the same, otherwise just output everything
-      if (schema.getFields().size() != columns.size()) {
-        List<Field> fieldList = schema.getFields().stream().filter(f -> columns.contains(f.name()))
-            .map(f -> new Schema.Field(f.name(), f.schema(), f.doc(), f.defaultVal()))
-            // create the list
-            .collect(Collectors.toList());
-
-        Schema prunedSchema = Schema.createRecord(fieldList);
-        this.finalRecord = new AvroFastRecord(prunedSchema);
-
-        // initialize source to target mapping
-        this.sourceIndicies = new int[fieldList.size()];
-        for (Field field : prunedSchema.getFields()) {
-          logger.info("Pruned field: " + field.name());
-          this.sourceIndicies[field.pos()] = schema.getField(field.name()).pos();
-        }
-
-        schema = prunedSchema;
+      // initialize source to target mapping
+      this.sourceIndicies = new int[fieldList.size()];
+      for (Field field : prunedSchema.getFields()) {
+        logger.info("Pruned field: " + field.name());
+        this.sourceIndicies[field.pos()] = schema.getField(field.name()).pos();
       }
+
+      schema = prunedSchema;
     }
 
     this.writer = new SpecificDatumWriter<>(schema);
     this.encoder = EncoderFactory.get().binaryEncoder(binaryBuffer, null);
-  }
-
-  public String getPrunedColumns() {
-    return prunedColumns;
   }
 
   public byte[] serialize(IndexedRecord record) throws IOException {

@@ -181,7 +181,7 @@ public class AvroFastRecord implements GenericContainer, IndexedRecord {
       return (key, value) -> record.put(pos, new AvroUtf8Wrapper(value.get()));
 
     // get the fitting encoder
-    Encoder<?> encoder = RowBuilderType.valueOf(field.getProp(AvroSchemaBuilder.ROWBUILDERTYPE_PROP)).getEncoder();
+    Encoder<?> encoder = RowBuilderType.valueOf(field.getProp(AvroSchemaBuilder.PROPERTY_ROWBUILDERTYPE)).getEncoder();
     return (key, value) -> record.put(pos, encoder.decode(value.get()));
   }
 }

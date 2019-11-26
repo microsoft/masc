@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import org.apache.spark.sql.types.StructField
 import ml.combust.bundle.BundleFile
@@ -52,7 +52,7 @@ object MLeapUtil {
 			// 2b. We can't use https://github.com/marschall/memoryfilesystem at it has a 16MB file size limitation
 			// 2c. We can't use Apache common-vfs as it doesn't support directory listing
 			// 3. Usually one triggers the ZFS implementation by prefixing the URI with jar:
-			//    Unfortunately on Spark the file system provider disappers from the installed list https://stackoverflow.com/questions/39500445/filesystem-provider-disappearing-in-spark
+			//    Unfortunately on Spark the file system provider disappears from the installed list https://stackoverflow.com/questions/39500445/filesystem-provider-disappearing-in-spark
 			//    thus it cannot be found by the ZFS implementation when looking up the jimfs: protocol
 			// 4. The public methods (e.g. FileSystems.newFileSystem(), new ZipFileSystemProvider().newFileSystem()) have checks that limit the incoming FileSystemProvider
 
@@ -77,6 +77,8 @@ object MLeapUtil {
 			val mleapPipeline = (for(bf <- managed(BundleFile(zfs, zfs.getPath("/")))) yield {
 				bf.loadMleapBundle().get.root
 			}).tried.get
+
+			// TODO: also process mleapPipeline.inputSchema to determine the required fields
 
 			mleapPipeline.outputSchema.fields.flatMap {
 				mleapField => {

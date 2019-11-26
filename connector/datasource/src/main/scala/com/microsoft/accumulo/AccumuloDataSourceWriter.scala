@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo
+package com.microsoft.accumulo
 
 import org.apache.spark.sql.SaveMode
 import org.apache.spark.sql.catalyst.InternalRow
