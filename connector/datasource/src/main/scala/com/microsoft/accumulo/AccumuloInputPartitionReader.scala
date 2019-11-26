@@ -66,18 +66,18 @@ class AccumuloInputPartitionReader(tableName: String,
   private val avroIterator = new IteratorSetting(
     priority,
     "AVRO",
-    "com.microsoft.accumulo.AvroRowEncoderIterator")
+    "com.microsoft.accumulo.spark.AvroRowEncoderIterator")
 
   // drop rowKey from schema
 //  private val schema = new StructType(baseSchema.fields ++ mleapFields)
 //  private val schemaWithRowKey = schema
 
   // only fetch column families we care for (and don't filter for the mleapFields which are artificially added later)
-  inputSchema.fields.filter(_.name != rowKeyColumn).foreach(f => scanner.fetchColumnFamily(f.name))
+  inputSchema.fields.foreach(f => scanner.fetchColumnFamily(f.name))
 
   private val rowKeyColumnIndex = {
-    if (inputSchema.fieldNames.contains(rowKeyColumn))
-      inputSchema.fieldIndex(rowKeyColumn)
+    if (outputSchema.fieldNames.contains(rowKeyColumn))
+      outputSchema.fieldIndex(rowKeyColumn)
     else
       -1
   }

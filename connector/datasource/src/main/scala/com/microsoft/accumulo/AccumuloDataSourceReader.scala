@@ -47,7 +47,8 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   val rowKeyColumn = options.get("rowkey").orElse("rowkey")
 
-  private var fullSchema = {
+  // initialize output schema with full schema
+  private var requiredSchema = {
     // add rowKey
     val baseSchema = schema.add(rowKeyColumn, DataTypes.StringType, nullable = true)
 
@@ -56,9 +57,6 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
     StructType(baseSchema ++ mleapFields)
   }
-
-  // initialize output schema with full schema
-  private var requiredSchema = fullSchema
 
   private var filterInJuel: Option[String] = None
 
@@ -73,7 +71,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     // https://issues.apache.org/jira/browse/SPARK-17636
     // https://github.com/apache/spark/pull/22535
 
-    val jsonSchema = AvroUtil.catalystSchemaToJson(fullSchema)
+    val jsonSchema = AvroUtil.catalystSchemaToJson(schema)
     val result = new FilterToJuel(jsonSchema.attributeToVariableMapping, rowKeyColumn)
       .serializeFilters(filters, options.get("filter").orElse(""))
 
@@ -109,7 +107,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
         new PartitionReaderFactory(tableName, splits(i - 1), splits(i),
-          fullSchema, requiredSchema, properties, rowKeyColumn, filterInJuel)
+          schema, requiredSchema, properties, rowKeyColumn, filterInJuel)
       ).asJava
     )
   }
