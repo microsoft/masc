@@ -47,7 +47,8 @@ public class AvroRowSerializer {
 
   public AvroRowSerializer(Schema schema) {
     List<Field> fieldList = schema.getFields().stream()
-        .filter(f -> (boolean) f.getObjectProp(AvroSchemaBuilder.PROPERTY_OUTPUT))
+        // AVRO 1.8.2 doesn't support getObjectProp
+        .filter(f -> Boolean.parseBoolean(f.getProp(AvroSchemaBuilder.PROPERTY_OUTPUT)))
         .map(f -> new Schema.Field(f.name(), f.schema(), f.doc(), f.defaultVal()))
         // create the list
         .collect(Collectors.toList());

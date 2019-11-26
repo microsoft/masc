@@ -47,7 +47,7 @@ public class AvroSchemaBuilder {
         // encode rowBuilderType so we can only operator on schema
         .prop(PROPERTY_ROWBUILDERTYPE, type.name())
         // encode if this is an output field
-        .prop(PROPERTY_OUTPUT, field.isOutput())
+        .prop(PROPERTY_OUTPUT, Boolean.toString(field.isOutput()))
         // all fields are optional
         .type();
 
@@ -105,7 +105,7 @@ public class AvroSchemaBuilder {
         // name the record field
         .name(columnFamily)
         // any of the column sub fields need to be output?
-        .prop(PROPERTY_OUTPUT, output)
+        .prop(PROPERTY_OUTPUT, Boolean.toString(output))
         // it's a record type
         .type(columnFieldsAssembler.endRecord()).noDefault();
   }

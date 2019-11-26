@@ -15,16 +15,11 @@
     <encoding>UTF-8</encoding>
     <maven.compiler.source>1.8</maven.compiler.source>
     <maven.compiler.target>1.8</maven.compiler.target>
-    <scala.compat.version>2.11</scala.compat.version>
-    <scala.version>2.11.12</scala.version>
-    <spark.version>2.4.3</spark.version>
-    <spec2.version>4.2.0</spec2.version>
   </properties>
   <dependencies>
     <dependency>
       <groupId>org.apache.accumulo</groupId>
       <artifactId>accumulo-core</artifactId>
-      <version>2.0.0</version>
     </dependency>
     <dependency>
       <groupId>com.microsoft.masc</groupId>
@@ -34,7 +29,6 @@
     <dependency>
       <groupId>org.apache.avro</groupId>
       <artifactId>avro</artifactId>
-      <version>1.8.2</version>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
@@ -45,58 +39,50 @@
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-catalyst_${scala.compat.version}</artifactId>
       <version>${spark.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.scala-lang</groupId>
+          <artifactId>scala-reflect</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-core_${scala.compat.version}</artifactId>
-      <version>${spark.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.spark</groupId>
-      <artifactId>spark-sql_${scala.compat.version}</artifactId>
-      <version>${spark.version}</version>
+       <groupId>org.apache.spark</groupId>
+       <artifactId>spark-sql_${scala.compat.version}</artifactId>
     </dependency>
     <dependency>
       <groupId>org.scala-lang</groupId>
       <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
     </dependency>
     <dependency>
       <groupId>ml.combust.mleap</groupId>
       <artifactId>mleap-runtime_${scala.compat.version}</artifactId>
-      <version>0.14.0</version>
     </dependency>
     <dependency>
       <groupId>ml.combust.mleap</groupId>
       <artifactId>mleap-spark_${scala.compat.version}</artifactId>
-      <version>0.14.0</version>
     </dependency>   
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-mllib-local_${scala.compat.version}</artifactId>
-      <version>2.4.3</version>
     </dependency>
     <dependency>
       <groupId>org.apache.spark</groupId>
       <artifactId>spark-mllib_${scala.compat.version}</artifactId>
-      <version>2.4.3</version>
     </dependency>
     <dependency>
       <groupId>com.google.jimfs</groupId>
       <artifactId>jimfs</artifactId>
-      <version>1.1</version>
     </dependency>
     <dependency>
       <groupId>log4j</groupId>
       <artifactId>log4j</artifactId>
       <version>1.2.17</version>
     </dependency>
-    
     <!-- Test -->
     <dependency>
       <groupId>junit</groupId>
       <artifactId>junit</artifactId>
-      <version>4.12</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -104,11 +90,16 @@
       <artifactId>scalatest_${scala.compat.version}</artifactId>
       <version>3.0.5</version>
       <scope>test</scope>
+      <exclusions>
+        <exclusion>
+          <groupId>org.scala-lang</groupId>
+          <artifactId>scala-reflect</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>org.specs2</groupId>
       <artifactId>specs2-core_${scala.compat.version}</artifactId>
-      <version>${spec2.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -150,7 +141,7 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.21.0</version>
+        <version>2.22.2</version>
         <configuration>
           <!-- Tests will be run with scalatest-maven-plugin instead -->
           <skipTests>true</skipTests>
@@ -224,28 +215,10 @@
           </execution>
         </executions>
       </plugin>
-      <!-- it seems accumulo mini cluster doesn't work with JDK 1.8 anymore... 
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.0.0-M2</version>
-        <executions>
-          <execution>
-            <id>enforce-java</id>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <requireJavaVersion>
-                  <version>1.8.0</version>
-                </requireJavaVersion>
-              </rules>    
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>      
-      -->
+     </plugin>
     </plugins>
     <sourceDirectory>src/main/scala</sourceDirectory>
     <testSourceDirectory>src/test/scala</testSourceDirectory>

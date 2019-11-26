@@ -80,6 +80,8 @@ public class ReadIT {
 
             propMap.put("rowkey", "key");
             propMap.put("splits", "r0,r1");
+            // Enable this for debugging. The mini-cluster logs are empty (no exceptions
+            // found there)
             // propMap.put("exceptionlogfile", "/tmp/com.microsoft.accumulo.exception.log");
             sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
 
@@ -91,81 +93,69 @@ public class ReadIT {
 
             Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
 
+            // help debug issues for column pruning
             accumuloDf.show();
-            // accumuloDf.select("text").show();
-            // // accumuloDf.coalesce(1).orderBy("key").select("text").show();
-            // assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("text"),
-            // // expected 0
-            // "this is bad",
-            // // expected 1
-            // "this is good",
-            // // expected 2
-            // "we don't know yet");
+            accumuloDf.select("text").show();
+
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("text"),
+                        // expected 0
+                        "this is bad",
+                        // expected 1
+                        "this is good",
+                        // expected 2
+                        "we don't know yet");
       }
 
-      // @Test
-      // public void testDataReading() throws Exception {
-      // File propsFile = new
-      // File("target/accumulo2-maven-plugin/spark-connector-instance");
-      // Properties props = MiniAccumuloCluster.getClientProperties(propsFile);
+      @Test
+      public void testDataReading() throws Exception {
+            File propsFile = new File("target/accumulo2-maven-plugin/spark-connector-instance");
+            Properties props = MiniAccumuloCluster.getClientProperties(propsFile);
 
-      // HashMap<String, String> propMap = new HashMap<>();
-      // for (final String name : props.stringPropertyNames())
-      // propMap.put(name, props.getProperty(name));
+            HashMap<String, String> propMap = new HashMap<>();
+            for (final String name : props.stringPropertyNames())
+                  propMap.put(name, props.getProperty(name));
 
-      // propMap.put("table", "sample_table_1");
+            propMap.put("table", "sample_table_1");
 
-      // SparkConf conf = new SparkConf()
-      // // local instance
-      // .setMaster("local").setAppName("AccumuloIntegrationTest")
-      // // speed up, but still keep parallelism
-      // .set("keyspark.sql.shuffle.partitions", "2");
+            SparkConf conf = new SparkConf()
+                        // local instance
+                        .setMaster("local").setAppName("AccumuloIntegrationTest")
+                        // speed up, but still keep parallelism
+                        .set("keyspark.sql.shuffle.partitions", "2");
 
-      // SparkSession sc = SparkSession.builder().config(conf).getOrCreate();
+            SparkSession sc = SparkSession.builder().config(conf).getOrCreate();
 
-      // Dataset<Row> sampleDf = sc.read()
-      // // configure the header
-      // .option("header", "true").option("inferSchema", "true")
-      // // specify the file
-      // .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
+            Dataset<Row> sampleDf = sc.read()
+                        // configure the header
+                        .option("header", "true").option("inferSchema", "true")
+                        // specify the file
+                        .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
 
-      // propMap.put("rowkey", "key");
-      // propMap.put("splits", "r0,r1");
-      // sampleDf.write().format("org.apache.accumulo").options(propMap).save();
+            propMap.put("rowkey", "key");
+            propMap.put("splits", "r0,r1");
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
 
-      // // read with native client (just in-case the reader is broken?)
-      // try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
-      // try (Scanner scanner = client.createScanner("sample_table_1",
-      // Authorizations.EMPTY)) {
-      // for (Entry<Key, Value> entry : scanner) {
-      // System.out.println(entry.getKey().toString() + " -> " + entry.getValue());
-      // }
-      // }
-      // }
+            // read with native client (just in-case the reader is broken?)
+            try (AccumuloClient client = Accumulo.newClient().from(props).build()) {
+                  try (Scanner scanner = client.createScanner("sample_table_1", Authorizations.EMPTY)) {
+                        for (Entry<Key, Value> entry : scanner) {
+                              System.out.println(entry.getKey().toString() + " -> " + entry.getValue());
+                        }
+                  }
+            }
 
-      // // read from accumulo
-      // StructType schema = new StructType(
-      // new StructField[] { new StructField("label", DataTypes.DoubleType, true,
-      // Metadata.empty()),
-      // new StructField("text", DataTypes.StringType, true, Metadata.empty()),
-      // new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
+            // read from accumulo
+            StructType schema = new StructType(
+                        new StructField[] { new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
+                                    new StructField("text", DataTypes.StringType, true, Metadata.empty()),
+                                    new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
 
-      // // // read from accumulo
-      // // StructType schema = new StructType(
-      // // new StructField[] { new StructField("label", DataTypes.DoubleType, true,
-      // Metadata.empty()),
-      // // new StructField("text", DataTypes.StringType, true, Metadata.empty()),
-      // // new StructField("count", DataTypes.IntegerType, true, Metadata.empty())
-      // });
+            Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
 
-      // // Dataset<Row> accumuloDf =
-      // sc.read().format("org.apache.accumulo").options(propMap).schema(schema).load();
+            accumuloDf.show(10);
 
-      // // accumuloDf.show(10);
-
-      // assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("label"), 0, 1,
-      // 0);
-      // }
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("label"), 0.0, 1.0, 0.0);
+      }
 
       private <T> void assertDataframe(Dataset<Row> df, T... expectedValues) throws IOException {
             File result = File.createTempFile("result", ".csv");
@@ -187,16 +177,8 @@ public class ReadIT {
             // match size
             assertEquals(expectedValues.length, resultValues.size());
 
-            // if (expectedValues.getClass().equals(double[].class)) {
-            // // match elements
-            // for (int i = 0; i < expectedValues.length; i++)
-            // assertEquals((double) resultValues.get(i), (double) expectedValues[i],
-            // 0.0001);
-            // } else {
-            // match elements
             for (int i = 0; i < expectedValues.length; i++)
                   assertEquals(resultValues.get(i).toString(), expectedValues[i].toString());
-            // }
       }
 
       @Test
@@ -296,9 +278,6 @@ public class ReadIT {
                                     new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
 
             propMap.put("mleapfilter", "${prediction > 0}");
-            // TODO: would be nice, but it's getting a bit tricky when the filter is
-            // composed
-            // accumuloDf.filter("prediction > 0").show(10);
 
             Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
 
@@ -308,6 +287,6 @@ public class ReadIT {
             // validate schema
             assertEquals(5, accumuloDf.schema().fields().length);
 
-            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("prediction"), 1);
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("prediction"), 1.0);
       }
 }
