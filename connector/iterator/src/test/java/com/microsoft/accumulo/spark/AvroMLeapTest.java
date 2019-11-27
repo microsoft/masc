@@ -22,11 +22,7 @@ import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
 import java.io.IOException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
+import java.util.*;
 
 import org.apache.accumulo.core.client.lexicoder.DoubleLexicoder;
 import org.apache.accumulo.core.data.Key;
@@ -60,6 +56,7 @@ public class AvroMLeapTest {
 
     // pass the model to the iterator
     options.put(AvroRowMLeap.MLEAP_BUNDLE, mleapBundleBase64);
+    options.put(AvroRowMLeap.MLEAP_GUID, UUID.randomUUID().toString());
 
     // map cf1.cq1 to fit the models input data frame
     options.put("column.feature.double", "${cf1.cq1}");

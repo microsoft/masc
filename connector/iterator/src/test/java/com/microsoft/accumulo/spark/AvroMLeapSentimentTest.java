@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.UUID;
 
 import org.apache.accumulo.core.client.lexicoder.DoubleLexicoder;
 import org.apache.accumulo.core.client.lexicoder.StringLexicoder;
@@ -145,6 +146,7 @@ public class AvroMLeapSentimentTest {
 
 		// pass the model to the iterator
 		options.put(AvroRowMLeap.MLEAP_BUNDLE, mleapBundleBase64);
+		options.put(AvroRowMLeap.MLEAP_GUID, UUID.randomUUID().toString());
 
 		if (StringUtils.isNotBlank(mleapFilter))
 			options.put(AvroRowEncoderIterator.MLEAP_FILTER, mleapFilter);

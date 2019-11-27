@@ -55,9 +55,8 @@ import ml.combust.mleap.runtime.frame.Transformer;
 import ml.combust.bundle.BundleFile;
 import ml.combust.mleap.runtime.javadsl.ContextBuilder;
 
+import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.cache.CacheLoader;
-import com.google.common.cache.LoadingCache;
 // https://github.com/marschall/memoryfilesystem has a 16MB file size limitation
 import com.google.common.jimfs.Configuration;
 import com.google.common.jimfs.Jimfs;
@@ -76,17 +75,11 @@ import scala.collection.mutable.WrappedArray;
 public class AvroRowMLeap extends AvroRowConsumer {
   private final static Logger logger = Logger.getLogger(AvroRowMLeap.class);
 
-  private final static LoadingCache<String, Transformer> transformers = CacheBuilder.newBuilder()
-      // use == for equality comparison as the strings are rather large
-      .weakKeys()
+  private final static Cache<String, Transformer> transformers = CacheBuilder.newBuilder()
       // expectation is that iterators are re-inited rather frequenly
       .expireAfterAccess(5, TimeUnit.MINUTES)
-      // loading function
-      .build(new CacheLoader<String, Transformer>() {
-        public Transformer load(String mleapBundleBase64) throws IOException {
-          return CreateTransformer(mleapBundleBase64);
-        }
-      });
+      // build up
+      .<String, Transformer>build();
 
   private static Transformer CreateTransformer(String mleapBundleBase64) throws IOException {
     long start = System.nanoTime();
@@ -117,14 +110,20 @@ public class AvroRowMLeap extends AvroRowConsumer {
    */
   public static final String MLEAP_BUNDLE = "mleap";
 
+  /**
+   * GUID to support fast caching.
+   */
+  public static final String MLEAP_GUID = "mleapguid";
+
   public static AvroRowMLeap create(Map<String, String> options) throws IOException {
     String mleapBundleBase64 = options.get(MLEAP_BUNDLE);
+    String mleapGuid = options.get(MLEAP_GUID);
 
-    if (StringUtils.isEmpty(mleapBundleBase64))
+    if (StringUtils.isEmpty(mleapBundleBase64) || StringUtils.isEmpty(mleapGuid))
       return null;
 
     try {
-      return new AvroRowMLeap(transformers.get(mleapBundleBase64));
+      return new AvroRowMLeap(transformers.get(mleapGuid, () -> CreateTransformer(mleapBundleBase64)));
     } catch (ExecutionException e) {
       throw (IOException) e.getCause();
     }

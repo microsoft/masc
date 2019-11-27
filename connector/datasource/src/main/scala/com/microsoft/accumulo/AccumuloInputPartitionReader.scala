@@ -30,7 +30,7 @@ import org.apache.spark.sql.sources.v2.reader.InputPartitionReader
 import org.apache.spark.sql.types.{StructField, StructType}
 import org.apache.hadoop.io.Text
 import java.io.IOException
-import java.util.Collections
+import java.util.{Collections, UUID}
 import org.apache.spark.unsafe.types.UTF8String
 import org.apache.log4j.Logger
 
@@ -98,6 +98,10 @@ class AccumuloInputPartitionReader(tableName: String,
   // forward options
   Seq("mleap", "mleapfilter", "exceptionlogfile")
     .foreach { key => avroIterator.addOption(key, properties.getProperty(key, "")) }
+
+  // pass GUID to iterator so we can perform fast cache lookup
+  if (properties.containsKey("mleap"))
+    avroIterator.addOption("mleapguid", UUID.randomUUID.toString)
 
   scanner.addScanIterator(avroIterator)
 

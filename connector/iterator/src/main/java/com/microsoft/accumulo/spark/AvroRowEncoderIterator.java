@@ -239,7 +239,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
     io.addNamedOption(FILTER, "JUEL encoded filter applied for each row.");
     io.addNamedOption(MLEAP_FILTER, "JUEL encoded filter applied after executing Mleap model.");
     io.addNamedOption(AvroRowMLeap.MLEAP_BUNDLE, "Base64 encoded Mleap bundle executed.");
-
+    io.addNamedOption(AvroRowMLeap.MLEAP_GUID, "GUID for Mleap bundle to enable fast caching.");
     return io;
   }
 
