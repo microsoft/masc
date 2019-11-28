@@ -25,6 +25,7 @@ import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.sources.Filter
 import scala.collection.JavaConverters._
 import org.apache.log4j.Logger
+import java.util.UUID
 
 // TODO: https://github.com/apache/spark/blob/053dd858d38e6107bc71e0aa3a4954291b74f8c8/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsReportPartitioning.java
 // in head of spark github repo
@@ -93,6 +94,10 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     val properties = new java.util.Properties()
     // can use .putAll(options.asMap()) due to https://github.com/scala/bug/issues/10418
     options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
+
+    // pass GUID to iterator so we can perform fast cache lookup
+    // needs to be done on the head node so that all have the same guid
+    properties.setProperty("mleapguid", UUID.randomUUID.toString)
 
     val splits = ArrayBuffer(Array.empty[Byte], Array.empty[Byte])
 

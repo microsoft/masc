@@ -96,12 +96,8 @@ class AccumuloInputPartitionReader(tableName: String,
 //  avroIterator.addOption("prunedcolumns", prunedColumns)
 
   // forward options
-  Seq("mleap", "mleapfilter", "exceptionlogfile")
+  Seq("mleap", "mleapfilter", "mleapguid", "exceptionlogfile")
     .foreach { key => avroIterator.addOption(key, properties.getProperty(key, "")) }
-
-  // pass GUID to iterator so we can perform fast cache lookup
-  if (properties.containsKey("mleap"))
-    avroIterator.addOption("mleapguid", UUID.randomUUID.toString)
 
   scanner.addScanIterator(avroIterator)
 

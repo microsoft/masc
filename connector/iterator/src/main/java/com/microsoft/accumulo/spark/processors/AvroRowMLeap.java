@@ -81,7 +81,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
       // build up
       .<String, Transformer>build();
 
-  private static Transformer CreateTransformer(String mleapBundleBase64) throws IOException {
+  private static Transformer CreateTransformer(String mleapGuid, String mleapBundleBase64) throws IOException {
     long start = System.nanoTime();
 
     byte[] mleapBundle = Base64.getDecoder().decode(mleapBundleBase64);
@@ -97,8 +97,8 @@ public class AvroRowMLeap extends AvroRowConsumer {
       try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
         Transformer transformer = (Transformer) bf.load(mleapContext).get().root();
 
-        logger.info(String.format("Decompressing model (%.1fkb) %.2fms", mleapBundleBase64.length() / 1024.0,
-            (System.nanoTime() - start) / 1e6));
+        logger.info(String.format("Decompressing model (%.1fkb) %.2fms cache id: %s",
+            mleapBundleBase64.length() / 1024.0, (System.nanoTime() - start) / 1e6, mleapGuid));
 
         return transformer;
       }
@@ -123,7 +123,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
       return null;
 
     try {
-      return new AvroRowMLeap(transformers.get(mleapGuid, () -> CreateTransformer(mleapBundleBase64)));
+      return new AvroRowMLeap(transformers.get(mleapGuid, () -> CreateTransformer(mleapGuid, mleapBundleBase64)));
     } catch (ExecutionException e) {
       throw (IOException) e.getCause();
     }
