@@ -23,6 +23,7 @@ import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, InputPartitionReader}
 import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
 import org.apache.spark.sql.sources.Filter
+import org.apache.hadoop.io.Text
 import scala.collection.JavaConverters._
 import org.apache.log4j.Logger
 import java.util.UUID
@@ -105,9 +106,15 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     val tableSplits = client.tableOperations().listSplits(tableName, maxPartitions) 
     client.close()
 
-    splits.insertAll(1, tableSplits.asScala.map(_.getBytes))
+    // on deployed clusters a table with no split will return a single empty Text instance
+    val containsSingleEmptySplit = 
+      tableSplits.size == 1 && 
+      tableSplits.iterator.next.asInstanceOf[Text].getLength == 0
 
-    logger.info(s"Splits '${tableSplits}'")
+    if (tableSplits.size > 1 || !containsSingleEmptySplit)
+      splits.insertAll(1, tableSplits.asScala.map(_.getBytes))
+
+    logger.info(s"Splits '${splits}' creating ${splits.length - 1} readers")
 
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
