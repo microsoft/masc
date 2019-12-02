@@ -51,8 +51,9 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   // initialize output schema with full schema
   private var requiredSchema = {
-    // add rowKey
-    val baseSchema = schema.add(rowKeyColumn, DataTypes.StringType, nullable = true)
+    // conditionally adding rowKey twice
+    val baseSchema = if (schema.fieldNames.contains(rowKeyColumn)) schema
+                     else schema.add(rowKeyColumn, DataTypes.StringType, nullable = true)
 
     // add any output fields we find in a mleap pipeline
     val mleapFields = MLeapUtil.mleapSchemaToCatalyst(options.get("mleap").orElse(""))
