@@ -4,13 +4,13 @@
   <parent>
     <groupId>com.microsoft.masc</groupId>
     <artifactId>accumulo-spark</artifactId>
-    <version>1.0.0-SNAPSHOT</version>
+    <version>1.0.0</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
   <artifactId>accumulo-spark-datasource</artifactId>
   <name>Apache Spark Connector for Accumulo DataSource</name>
   <description>Accumulo Connector for Apache Spark.</description>
-  <version>1.0.0-SNAPSHOT</version>
+  <version>1.0.0</version>
   <properties>
     <encoding>UTF-8</encoding>
     <maven.compiler.source>1.8</maven.compiler.source>
@@ -172,7 +172,8 @@
             </goals>
             <phase>package</phase>
             <configuration>
-              <shadedArtifactAttached>true</shadedArtifactAttached>
+              <!-- overwrite the original one -->
+              <!-- <shadedArtifactAttached>true</shadedArtifactAttached> -->
               <shadedClassifierName>shaded</shadedClassifierName>
               <artifactSet>
                 <excludes>
