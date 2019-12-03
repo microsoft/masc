@@ -1,0 +1,162 @@
+/*
+ * Licensed to the Apache Software Foundation (ASF) under one or more
+ * contributor license agreements.  See the NOTICE file distributed with
+ * this work for additional information regarding copyright ownership.
+ * The ASF licenses this file to You under the Apache License, Version 2.0
+ * (the "License"); you may not use this file except in compliance with
+ * the License.  You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.microsoft.accumulo.spark.record;
+
+import java.util.Collection;
+
+import org.apache.avro.Schema;
+import org.apache.avro.SchemaBuilder;
+
+/**
+ * Builds the AVRO Schema from the user-supplied JSON encoded schema.
+ */
+public class AvroSchemaBuilder {
+  public static final String PROPERTY_ROWBUILDERTYPE = "rowBuilderType";
+
+  public static final String PROPERTY_OUTPUT = "output";
+
+  private static SchemaBuilder.FieldAssembler<Schema> addAvroField(SchemaBuilder.FieldAssembler<Schema> builder,
+      RowBuilderField field, String name) {
+
+    RowBuilderType type = field.getRowBuilderType();
+
+    SchemaBuilder.FieldBuilder<Schema> fieldBuilder = builder
+        // configure the field name
+        .name(name);
+
+    // pass in alias
+    if (field.getFilterVariableName() != null && field.getFilterVariableName().length() > 0)
+      fieldBuilder = fieldBuilder.aliases(field.getFilterVariableName());
+
+    SchemaBuilder.FieldTypeBuilder<Schema> intermediate = fieldBuilder
+        // encode rowBuilderType so we can only operator on schema
+        .prop(PROPERTY_ROWBUILDERTYPE, type.name())
+        // encode if this is an output field
+        .prop(PROPERTY_OUTPUT, Boolean.toString(field.isOutput()))
+        // all fields are optional
+        .type();
+
+    if (field.isNullable()) {
+      SchemaBuilder.BaseTypeBuilder<SchemaBuilder.FieldAssembler<Schema>> optionalType = intermediate.optional();
+      switch (type) {
+      case String:
+        return optionalType.stringType();
+      case Long:
+        return optionalType.longType();
+      case Integer:
+        return optionalType.intType();
+      case Double:
+        return optionalType.doubleType();
+      case Float:
+        return optionalType.floatType();
+      case Boolean:
+        return optionalType.booleanType();
+      case Bytes:
+        return optionalType.bytesType();
+      default:
+        throw new IllegalArgumentException("Unsupported type '" + type + "'");
+      }
+    } else {
+      switch (type) {
+      case String:
+        return intermediate.stringType().noDefault();
+      case Long:
+        return intermediate.longType().noDefault();
+      case Integer:
+        return intermediate.intType().noDefault();
+      case Double:
+        return intermediate.doubleType().noDefault();
+      case Float:
+        return intermediate.floatType().noDefault();
+      case Boolean:
+        return intermediate.booleanType().noDefault();
+      case Bytes:
+        return intermediate.bytesType().noDefault();
+      default:
+        throw new IllegalArgumentException("Unsupported type '" + type + "'");
+      }
+    }
+  }
+
+  private static SchemaBuilder.FieldAssembler<Schema> closeFieldAssembler(
+      SchemaBuilder.FieldAssembler<Schema> rootAssembler, SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler,
+      String columnFamily, boolean output) {
+
+    if (columnFieldsAssembler == null)
+      return rootAssembler;
+
+    // add nested type to to root assembler
+    return rootAssembler
+        // name the record field
+        .name(columnFamily)
+        // any of the column sub fields need to be output?
+        .prop(PROPERTY_OUTPUT, Boolean.toString(output))
+        // it's a record type
+        .type(columnFieldsAssembler.endRecord()).noDefault();
+  }
+
+  public static Schema buildSchema(Collection<RowBuilderField> schemaFields) {
+    // construct schema
+    SchemaBuilder.FieldAssembler<Schema> rootAssembler = SchemaBuilder.record("root").fields();
+
+    // note that the order needs to be exactly in-sync with the avro schema
+    // generated on the MMLSpark/Scala side
+    String lastColumnFamily = null;
+    SchemaBuilder.FieldAssembler<Schema> columnFieldsAssembler = null;
+    boolean output = false;
+    for (RowBuilderField schemaField : schemaFields) {
+
+      String columnFamily = schemaField.getColumnFamily();
+      String columnQualifier = schemaField.getColumnQualifier();
+
+      if (columnQualifier != null) {
+        if (lastColumnFamily == null || !lastColumnFamily.equals(columnFamily)) {
+
+          // close previous record
+          rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily, output);
+
+          // open new record
+          columnFieldsAssembler = SchemaBuilder.record(columnFamily).fields();
+
+          output = false;
+        }
+
+        // true if any of the column qualifiers is an output field
+        output |= (boolean) schemaField.isOutput();
+
+        // add the current field
+        columnFieldsAssembler = addAvroField(columnFieldsAssembler, schemaField, columnQualifier);
+      } else {
+        // close previous record
+        rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily, output);
+        columnFieldsAssembler = null;
+        output = false;
+
+        // add the top-level field
+        rootAssembler = addAvroField(rootAssembler, schemaField, columnFamily);
+      }
+
+      lastColumnFamily = columnFamily;
+    }
+
+    rootAssembler = closeFieldAssembler(rootAssembler, columnFieldsAssembler, lastColumnFamily, output);
+
+    // setup serialization
+    return rootAssembler.endRecord();
+  }
+}
