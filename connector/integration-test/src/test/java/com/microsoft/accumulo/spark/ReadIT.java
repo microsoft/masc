@@ -11,6 +11,8 @@ import org.apache.accumulo.core.client.AccumuloClient;
 import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
 import org.apache.accumulo.core.client.BatchWriter;
 import org.apache.accumulo.core.data.Mutation;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.apache.spark.api.java.JavaSparkContext;
 import org.apache.spark.SparkConf;
@@ -53,32 +55,47 @@ import ml.combust.bundle.serializer.SerializationFormat;
 import ml.combust.mleap.spark.SimpleSparkSerializer;
 
 public class ReadIT {
-      @Test
-      public void testDataReadingSingleColumn() throws Exception {
-            File propsFile = new File("target/accumulo2-maven-plugin/spark-connector-instance");
-            Properties props = MiniAccumuloCluster.getClientProperties(propsFile);
+      private SparkSession sc;
+      private HashMap<String, String> propMap;
+      private Dataset<Row> sampleDf;
+      private Properties props;
 
-            HashMap<String, String> propMap = new HashMap<>();
+      @Before
+      public void setup() {
+            File propsFile = new File("target/accumulo2-maven-plugin/spark-connector-instance");
+            props = MiniAccumuloCluster.getClientProperties(propsFile);
+
+            propMap = new HashMap<>();
             for (final String name : props.stringPropertyNames())
                   propMap.put(name, props.getProperty(name));
+            propMap.put("rowkey", "key");
 
-            propMap.put("table", "sample_table_3");
-
+            // setup spark context
             SparkConf conf = new SparkConf()
                         // local instance
                         .setMaster("local").setAppName("AccumuloIntegrationTest")
                         // speed up, but still keep parallelism
                         .set("keyspark.sql.shuffle.partitions", "2");
 
-            SparkSession sc = SparkSession.builder().config(conf).getOrCreate();
+            sc = SparkSession.builder().config(conf).getOrCreate();
 
-            Dataset<Row> sampleDf = sc.read()
+            sampleDf = sc.read()
                         // configure the header
                         .option("header", "true").option("inferSchema", "true")
                         // specify the file
                         .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
 
-            propMap.put("rowkey", "key");
+      }
+
+      @After
+      public void tearDown() {
+            sc.close();
+      }
+
+      @Test
+      public void testDataReadingSingleColumn() throws Exception {
+            propMap.put("table", "sample_table_3");
+
             propMap.put("splits", "r0,r1");
             // Enable this for debugging. The mini-cluster logs are empty (no exceptions
             // found there)
@@ -108,30 +125,8 @@ public class ReadIT {
 
       @Test
       public void testDataReading() throws Exception {
-            File propsFile = new File("target/accumulo2-maven-plugin/spark-connector-instance");
-            Properties props = MiniAccumuloCluster.getClientProperties(propsFile);
-
-            HashMap<String, String> propMap = new HashMap<>();
-            for (final String name : props.stringPropertyNames())
-                  propMap.put(name, props.getProperty(name));
-
             propMap.put("table", "sample_table_1");
 
-            SparkConf conf = new SparkConf()
-                        // local instance
-                        .setMaster("local").setAppName("AccumuloIntegrationTest")
-                        // speed up, but still keep parallelism
-                        .set("keyspark.sql.shuffle.partitions", "2");
-
-            SparkSession sc = SparkSession.builder().config(conf).getOrCreate();
-
-            Dataset<Row> sampleDf = sc.read()
-                        // configure the header
-                        .option("header", "true").option("inferSchema", "true")
-                        // specify the file
-                        .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
-
-            propMap.put("rowkey", "key");
             propMap.put("splits", "r0,r1");
             sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
 
@@ -149,6 +144,26 @@ public class ReadIT {
                         new StructField[] { new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
                                     new StructField("text", DataTypes.StringType, true, Metadata.empty()),
                                     new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
+
+            Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+
+            accumuloDf.show(10);
+
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("label"), 0.0, 1.0, 0.0);
+      }
+
+      @Test
+      public void testDataReadingDupId() throws Exception {
+            propMap.put("table", "sample_table_2");
+
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
+
+            // read from accumulo
+            StructType schema = new StructType(new StructField[] { // include key as weel
+                        new StructField("key", DataTypes.StringType, true, Metadata.empty()),
+                        new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
+                        new StructField("text", DataTypes.StringType, true, Metadata.empty()),
+                        new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
 
             Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
 
@@ -183,9 +198,6 @@ public class ReadIT {
 
       @Test
       public void testDataReadingWithML() throws Exception {
-            File propsFile = new File("target/accumulo2-maven-plugin/spark-connector-instance");
-            Properties props = MiniAccumuloCluster.getClientProperties(propsFile);
-
             // String inputTable = "manual_table";
             // client.tableOperations().create(inputTable);
             // IntegerLexicoder lexicoder = new IntegerLexicoder();
@@ -209,25 +221,7 @@ public class ReadIT {
             // }
             // }
 
-            HashMap<String, String> propMap = new HashMap<>();
-            for (final String name : props.stringPropertyNames())
-                  propMap.put(name, props.getProperty(name));
-
             propMap.put("table", "sample_table");
-
-            SparkConf conf = new SparkConf()
-                        // local instance
-                        .setMaster("local").setAppName("AccumuloIntegrationTest")
-                        // speed up, but still keep parallelism
-                        .set("keyspark.sql.shuffle.partitions", "2");
-
-            SparkSession sc = SparkSession.builder().config(conf).getOrCreate();
-
-            Dataset<Row> sampleDf = sc.read()
-                        // configure the header
-                        .option("header", "true").option("inferSchema", "true")
-                        // specify the file
-                        .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
 
             sampleDf.show(10);
             sampleDf.printSchema();
@@ -254,7 +248,6 @@ public class ReadIT {
             byte[] modelByteArray = Files.readAllBytes(tempModel.toPath());
             String modelBase64Encoded = Base64.getEncoder().encodeToString(modelByteArray);
 
-            propMap.put("rowkey", "key");
             propMap.put("splits", "r0,r1");
             sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
 
