@@ -12,7 +12,7 @@ This code provides connectivity between Apache Accumulo and Apache Spark.
 # Read from Accumulo
 df = (spark
       .read
-      .format("org.apache.accumulo")
+      .format("com.microsoft.accumulo")
       .options(**options)  # define Accumulo properties
       .schema(schema))  # define schema for data retrieval
 
