@@ -28,6 +28,8 @@
   <name>Apache Spark Connector for Accumulo Iterator</name>
   <properties>
     <encoding>UTF-8</encoding>
+    <!-- when building the tests we need the non-shaded version. -->
+    <shadedArtifactAttached>true</shadedArtifactAttached>
   </properties>
   <dependencies>
     <dependency>
@@ -150,8 +152,7 @@
             </goals>
             <phase>package</phase>
             <configuration>
-              <!-- overwrite the original one -->
-              <!-- <shadedArtifactAttached>true</shadedArtifactAttached> -->
+              <shadedArtifactAttached>${shadedArtifactAttached}</shadedArtifactAttached>
               <shadedClassifierName>shaded</shadedClassifierName>
               <artifactSet>
                 <excludes>
