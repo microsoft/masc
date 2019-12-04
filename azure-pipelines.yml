@@ -32,14 +32,21 @@ stages:
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: connector/iterator/target/accumulo-spark-iterator-1.0.0-SNAPSHOT-shaded.jar
+        targetPath: connector/iterator/target/accumulo-spark-iterator-1.0.0-shaded.jar
         artifactName: accumulo-spark-iterator
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: connector/datasource/target/accumulo-spark-datasource-1.0.0-SNAPSHOT-shaded.jar
+        targetPath: connector/datasource/target/accumulo-spark-datasource-1.0.0-shaded.jar
         artifactName: accumulo-spark-datasource
 
-
-       
+    - bash: cd connector/publish && ./publish.sh
+      displayName: Publish to Sonatype
+      condition: variables['ossrh_gpg']
+      env:
+        # these are credentials used to publish to oss.sonatype.org
+        # credentials are stored as secrets in the build definition
+        ossrh_gpg: $(ossrh_gpg)
+        ossrh_username: $(ossrh_username)
+        ossrh_password: $(ossrh_password)
 
