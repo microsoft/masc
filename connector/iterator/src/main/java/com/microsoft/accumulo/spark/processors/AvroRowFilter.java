@@ -37,8 +37,7 @@ import org.apache.log4j.Logger;
  * Evaluates the user-supplied filter (JUEL syntax) against the constructed AVRO
  * record.
  * 
- * @implNote filter operates on AVRO Record object, not on the serialized
- *           version.
+ * Note: filter operates on AVRO Record object, not on the serialized version.
  */
 public class AvroRowFilter extends AvroRowConsumer {
   private final static Logger logger = Logger.getLogger(AvroRowFilter.class);
