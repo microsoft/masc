@@ -23,7 +23,7 @@ stages:
       inputs:
         mavenPomFile: 'connector/pom.xml'
         javaHomeOption: 'JDKVersion'
-        jdkVersionOption: '1.11'
+        jdkVersionOption: '1.8'
         jdkArchitectureOption: 'x64'
         publishJUnitResults: true
         testResultsFiles: '**/TEST-*.xml'
