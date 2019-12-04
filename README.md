@@ -22,6 +22,8 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 # Build
 
 [![Build Status](https://dev.azure.com/AZGlobal/Azure%20Global%20CAT%20Engineering/_apis/build/status/AGCE%20AI/Web%20Scale%20AI/microsoft.Accumulo?branchName=master)](https://dev.azure.com/AZGlobal/Azure%20Global%20CAT%20Engineering/_build/latest?definitionId=84&branchName=master) 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-datasource/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-datasource)
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-iterator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-iterator)
 
 # Trademarks
 
