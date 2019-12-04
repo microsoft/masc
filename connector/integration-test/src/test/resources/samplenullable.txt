@@ -1,0 +1,4 @@
+key,label,text,count
+r0,0.0,,5
+,1.0,this is good,
+r2,,we don't know yet,2

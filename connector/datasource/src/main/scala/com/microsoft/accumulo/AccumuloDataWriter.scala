@@ -62,7 +62,11 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
             case FloatType => (record: InternalRow) => floatEncoder.encode(floatAccessor(record, fieldIdx).asInstanceOf[Float])
             case LongType => (record: InternalRow) => longEncoder.encode(longAccessor(record, fieldIdx).asInstanceOf[Long])
             case IntegerType => (record: InternalRow) => intEncoder.encode(intAccessor(record, fieldIdx).asInstanceOf[Integer])
-            case StringType => (record: InternalRow) => stringAccessor(record, fieldIdx).asInstanceOf[UTF8String].getBytes
+            case StringType => (record: InternalRow) => {
+              val obj = stringAccessor(record, fieldIdx)
+              
+              if (obj == null) null else obj.asInstanceOf[UTF8String].getBytes
+            }
         }
     }
 
@@ -85,9 +89,12 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
 
                                     (rowKey: Array[Byte], nestedRecord: InternalRow) => {
                                         // not using the fluent interface to provide backward compat
-                                        val mutation = new Mutation(rowKey)
-                                        mutation.put(cfBytes, cqBytes, encoder(nestedRecord))
-                                        batchWriter.addMutation(mutation)
+                                        val value = encoder(nestedRecord)
+                                        if (value != null) {
+                                            val mutation = new Mutation(rowKey)
+                                            mutation.put(cfBytes, cqBytes, value)
+                                            batchWriter.addMutation(mutation)
+                                        }
                                     }
                                 }
                             }
@@ -107,9 +114,12 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
                             // println(s"\twriting row ${cf.name}")
 
                             // not using the fluent interface to provide backward compat
-                            val mutation = new Mutation(rowKey)
-                            mutation.put(cfBytes, Array.empty[Byte], encoder(record))
-                            batchWriter.addMutation(mutation)
+                            val value = encoder(record)
+                            if (value != null) {
+                                val mutation = new Mutation(rowKey)
+                                mutation.put(cfBytes, Array.empty[Byte], value)
+                                batchWriter.addMutation(mutation)
+                            }
                         }
                    }
                 }
@@ -120,10 +130,13 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
     // private val columnVisibilityEmpty = new ColumnVisibility
 
     def write(record: InternalRow): Unit = {
-        // println(s"writing record: ${record}")
+        val rowKeyRaw = stringAccessor(record, rowKeyIdx)
 
-        val rowKey = stringAccessor(record, rowKeyIdx).asInstanceOf[UTF8String].getBytes
-        recordToMutation.foreach { _(rowKey, record) }
+        // skip if the rowKey is null
+        if (rowKeyRaw != null) {
+            val rowKey = rowKeyRaw.asInstanceOf[UTF8String].getBytes
+            recordToMutation.foreach { _(rowKey, record) }
+        }
     }
 
     def commit(): WriterCommitMessage = {

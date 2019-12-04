@@ -84,7 +84,6 @@ public class ReadIT {
                         .option("header", "true").option("inferSchema", "true")
                         // specify the file
                         .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
-
       }
 
       @After
@@ -281,5 +280,34 @@ public class ReadIT {
             assertEquals(5, accumuloDf.schema().fields().length);
 
             assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("prediction"), 1.0);
+      }
+
+      @Test
+      public void testDataWritingNullable() throws Exception {
+            propMap.put("table", "sample_table_null");
+
+            Dataset<Row> sampleDfNullable = sc.read()
+                        // configure the header
+                        .option("header", "true").option("inferSchema", "true")
+                        // specify the file
+                        .csv(Paths.get("target/test-classes/samplenullable.txt").toUri().toString());
+
+            sampleDfNullable.printSchema();
+            sampleDfNullable.show(10);
+
+            sampleDfNullable.write().format("com.microsoft.accumulo").options(propMap).save();
+
+            // read from accumulo
+            StructType schema = new StructType(new StructField[] { // include key as weel
+                        new StructField("key", DataTypes.StringType, true, Metadata.empty()),
+                        new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
+                        new StructField("text", DataTypes.StringType, true, Metadata.empty()),
+                        new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
+
+            Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+
+            accumuloDf.show(10);
+
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r2");
       }
 }
