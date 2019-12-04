@@ -4,6 +4,8 @@ cp settings.xml ~/.m2/settings.xml
 
 # ## generate gpg
 # gpg --full-generate-key
+# ## send to gpg server
+# gpg --keyserver pool.sks-keyservers.net --send-key 2E5260D120241F6F8E35370D293C0...
 # ## import signing key
 # ## this is how to export them
 # gpg --export-secret-keys 'Markus Cozowicz (com.microsoft.accumulo) <marcozo@microsoft.com>' | base64 -w 0
