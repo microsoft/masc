@@ -29,7 +29,7 @@ import java.nio.file.{Files, FileSystem, FileSystems, Path, StandardOpenOption}
 import resource._
 import ml.combust.mleap.core.types.ScalarType
 import com.google.common.jimfs.{Jimfs, Configuration}
-import org.apache.accumulo.zipfs.{ZipFileSystem, ZipFileSystemProvider}
+import com.microsoft.accumulo.zipfs.{ZipFileSystem, ZipFileSystemProvider}
 
 @SerialVersionUID(1L)
 object MLeapUtil {

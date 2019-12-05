@@ -23,9 +23,9 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
-  <artifactId>accumulo-spark-iterator</artifactId>
+  <artifactId>microsoft-accumulo-spark-iterator</artifactId>
   <version>1.0.0</version>
-  <name>Apache Spark Connector for Accumulo Iterator</name>
+  <name>Microsoft MASC, an Apache Spark connector for Apache Accumulo - Iterator</name>
   <properties>
     <encoding>UTF-8</encoding>
     <!-- when building the tests we need the non-shaded version. -->
@@ -44,7 +44,7 @@
     </dependency>
     <dependency>
       <groupId>com.microsoft.masc</groupId>
-      <artifactId>accumulo-spark-zipfs</artifactId>
+      <artifactId>microsoft-accumulo-spark-zipfs</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>

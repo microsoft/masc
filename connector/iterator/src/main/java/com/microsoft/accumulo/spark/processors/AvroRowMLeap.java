@@ -38,8 +38,8 @@ import org.apache.avro.generic.IndexedRecord;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.hadoop.io.Text;
 import org.apache.log4j.Logger;
-import org.apache.accumulo.zipfs.ZipFileSystem;
-import org.apache.accumulo.zipfs.ZipFileSystemProvider;
+import com.microsoft.accumulo.zipfs.ZipFileSystem;
+import com.microsoft.accumulo.zipfs.ZipFileSystemProvider;
 
 import ml.combust.mleap.avro.SchemaConverter;
 import ml.combust.mleap.core.types.BasicType;

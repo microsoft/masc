@@ -23,19 +23,19 @@
     <version>1.0.0</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
-  <artifactId>accumulo-spark-integration-test</artifactId>
+  <artifactId>microsoft-accumulo-spark-integration-test</artifactId>
   <version>1.0.0</version>
-  <name>Apache Spark Connector for Accumulo Integration Test</name>
+  <name>Microsoft MASC, an Apache Spark connector for Apache Accumulo - Integration Test</name>
   <dependencies>
     <dependency>
       <groupId>com.microsoft.masc</groupId>
-      <artifactId>accumulo-spark-datasource</artifactId>
+      <artifactId>microsoft-accumulo-spark-datasource</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>
     <dependency>
       <groupId>com.microsoft.masc</groupId>
-      <artifactId>accumulo-spark-iterator</artifactId>
+      <artifactId>microsoft-accumulo-spark-iterator</artifactId>
       <version>${project.version}</version>
       <scope>test</scope>
     </dependency>

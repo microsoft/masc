@@ -15,7 +15,7 @@
  * limitations under the License.
  */
 
-package org.apache.accumulo.zipfs;
+package com.microsoft.accumulo.zipfs;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
