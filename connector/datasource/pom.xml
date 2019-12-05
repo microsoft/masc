@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.microsoft.masc</groupId>
-    <artifactId>accumulo-spark</artifactId>
+    <artifactId>microsoft-accumulo-spark</artifactId>
     <version>1.0.0</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
