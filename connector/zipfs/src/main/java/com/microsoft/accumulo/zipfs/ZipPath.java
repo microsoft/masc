@@ -25,7 +25,7 @@
  * Portions Copyright (c) [2019] Microsoft Corporation
  */
 
-package org.apache.accumulo.zipfs;
+package com.microsoft.accumulo.zipfs;
 
 import java.io.File;
 import java.io.IOException;

@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.apache.accumulo.zipfs;
+package com.microsoft.accumulo.zipfs;
 
 import java.io.IOException;
 import java.io.OutputStream;

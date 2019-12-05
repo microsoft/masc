@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.apache.accumulo.zipfs;
+package com.microsoft.accumulo.zipfs;
 
 import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.PosixFilePermission;

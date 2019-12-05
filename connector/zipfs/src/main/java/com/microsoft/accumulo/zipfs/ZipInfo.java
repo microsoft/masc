@@ -23,17 +23,17 @@
  * questions.
  */
 
-package org.apache.accumulo.zipfs;
+package com.microsoft.accumulo.zipfs;
 
 import java.nio.file.Paths;
 import java.util.Collections;
 import java.util.Map;
 import java.util.zip.ZipException;
 
-import static org.apache.accumulo.zipfs.ZipConstants.*;
-import static org.apache.accumulo.zipfs.ZipUtils.dosToJavaTime;
-import static org.apache.accumulo.zipfs.ZipUtils.unixToJavaTime;
-import static org.apache.accumulo.zipfs.ZipUtils.winToJavaTime;
+import static com.microsoft.accumulo.zipfs.ZipConstants.*;
+import static com.microsoft.accumulo.zipfs.ZipUtils.dosToJavaTime;
+import static com.microsoft.accumulo.zipfs.ZipUtils.unixToJavaTime;
+import static com.microsoft.accumulo.zipfs.ZipUtils.winToJavaTime;
 
 /**
  * Print all loc and cen headers of the ZIP file
@@ -47,16 +47,15 @@ public class ZipInfo {
             print("Usage: java ZipInfo zfname");
         } else {
             Map<String, ?> env = Collections.emptyMap();
-            ZipFileSystem zfs = (ZipFileSystem)(new ZipFileSystemProvider()
-                                    .newFileSystem(Paths.get(args[0]), env));
+            ZipFileSystem zfs = (ZipFileSystem) (new ZipFileSystemProvider().newFileSystem(Paths.get(args[0]), env));
             byte[] cen = zfs.cen;
             if (cen == null) {
                 print("zip file is empty%n");
                 return;
             }
-            int    pos = 0;
+            int pos = 0;
             byte[] buf = new byte[1024];
-            int    no = 1;
+            int no = 1;
             while (pos + CENHDR < cen.length) {
                 print("----------------#%d--------------------%n", no++);
                 printCEN(cen, pos);
@@ -89,20 +88,17 @@ public class ZipInfo {
         print("[Local File Header]%n");
         print("    Signature   :   %#010x%n", LOCSIG(loc));
         if (LOCSIG(loc) != LOCSIG) {
-           print("    Wrong signature!");
-           return;
+            print("    Wrong signature!");
+            return;
         }
-        print("    Version     :       %#6x    [%d.%d]%n",
-                  LOCVER(loc), LOCVER(loc) / 10, LOCVER(loc) % 10);
+        print("    Version     :       %#6x    [%d.%d]%n", LOCVER(loc), LOCVER(loc) / 10, LOCVER(loc) % 10);
         print("    Flag        :       %#6x%n", LOCFLG(loc));
         print("    Method      :       %#6x%n", LOCHOW(loc));
-        print("    LastMTime   :   %#10x    [%tc]%n",
-              LOCTIM(loc), dosToJavaTime(LOCTIM(loc)));
+        print("    LastMTime   :   %#10x    [%tc]%n", LOCTIM(loc), dosToJavaTime(LOCTIM(loc)));
         print("    CRC         :   %#10x%n", LOCCRC(loc));
         print("    CSize       :   %#10x%n", LOCSIZ(loc));
         print("    Size        :   %#10x%n", LOCLEN(loc));
-        print("    NameLength  :       %#6x    [%s]%n",
-                  LOCNAM(loc), new String(loc, LOCHDR, LOCNAM(loc)));
+        print("    NameLength  :       %#6x    [%s]%n", LOCNAM(loc), new String(loc, LOCHDR, LOCNAM(loc)));
         print("    ExtraLength :       %#6x%n", LOCEXT(loc));
         if (LOCEXT(loc) != 0)
             printExtra(loc, LOCHDR + LOCNAM(loc), LOCEXT(loc));
@@ -112,24 +108,21 @@ public class ZipInfo {
         print("[Central Directory Header]%n");
         print("    Signature   :   %#010x%n", CENSIG(cen, off));
         if (CENSIG(cen, off) != CENSIG) {
-           print("    Wrong signature!");
-           return;
+            print("    Wrong signature!");
+            return;
         }
-        print("    VerMadeby   :       %#6x    [%d, %d.%d]%n",
-              CENVEM(cen, off), (CENVEM(cen, off) >> 8),
-              (CENVEM(cen, off) & 0xff) / 10,
-              (CENVEM(cen, off) & 0xff) % 10);
-        print("    VerExtract  :       %#6x    [%d.%d]%n",
-              CENVER(cen, off), CENVER(cen, off) / 10, CENVER(cen, off) % 10);
+        print("    VerMadeby   :       %#6x    [%d, %d.%d]%n", CENVEM(cen, off), (CENVEM(cen, off) >> 8),
+                (CENVEM(cen, off) & 0xff) / 10, (CENVEM(cen, off) & 0xff) % 10);
+        print("    VerExtract  :       %#6x    [%d.%d]%n", CENVER(cen, off), CENVER(cen, off) / 10,
+                CENVER(cen, off) % 10);
         print("    Flag        :       %#6x%n", CENFLG(cen, off));
         print("    Method      :       %#6x%n", CENHOW(cen, off));
-        print("    LastMTime   :   %#10x    [%tc]%n",
-              CENTIM(cen, off), dosToJavaTime(CENTIM(cen, off)));
+        print("    LastMTime   :   %#10x    [%tc]%n", CENTIM(cen, off), dosToJavaTime(CENTIM(cen, off)));
         print("    CRC         :   %#10x%n", CENCRC(cen, off));
         print("    CSize       :   %#10x%n", CENSIZ(cen, off));
         print("    Size        :   %#10x%n", CENLEN(cen, off));
-        print("    NameLen     :       %#6x    [%s]%n",
-              CENNAM(cen, off), new String(cen, off + CENHDR, CENNAM(cen, off)));
+        print("    NameLen     :       %#6x    [%s]%n", CENNAM(cen, off),
+                new String(cen, off + CENHDR, CENNAM(cen, off)));
         print("    ExtraLen    :       %#6x%n", CENEXT(cen, off));
         if (CENEXT(cen, off) != 0)
             printExtra(cen, off + CENHDR + CENNAM(cen, off), CENEXT(cen, off));
@@ -143,7 +136,7 @@ public class ZipInfo {
 
     private static long locoff(byte[] cen, int pos) {
         long locoff = CENOFF(cen, pos);
-        if (locoff == ZIP64_MINVAL) {    //ZIP64
+        if (locoff == ZIP64_MINVAL) { // ZIP64
             int off = pos + CENHDR + CENNAM(cen, pos);
             int end = off + CENEXT(cen, pos);
             while (off + 4 < end) {
@@ -180,7 +173,7 @@ public class ZipInfo {
                 print("%02x ", extra[off + i]);
             print("]%n");
             switch (tag) {
-            case EXTID_ZIP64 :
+            case EXTID_ZIP64:
                 print("         ->ZIP64: ");
                 int pos = off;
                 while (pos + 8 <= off + sz) {
@@ -192,21 +185,17 @@ public class ZipInfo {
             case EXTID_NTFS:
                 print("         ->PKWare NTFS%n");
                 // 4 bytes reserved
-                if (SH(extra, off + 4) !=  0x0001 || SH(extra, off + 6) !=  24)
+                if (SH(extra, off + 4) != 0x0001 || SH(extra, off + 6) != 24)
                     print("    Error: Invalid NTFS sub-tag or subsz");
-                print("            mtime:%tc%n",
-                      winToJavaTime(LL(extra, off + 8)));
-                print("            atime:%tc%n",
-                      winToJavaTime(LL(extra, off + 16)));
-                print("            ctime:%tc%n",
-                      winToJavaTime(LL(extra, off + 24)));
+                print("            mtime:%tc%n", winToJavaTime(LL(extra, off + 8)));
+                print("            atime:%tc%n", winToJavaTime(LL(extra, off + 16)));
+                print("            ctime:%tc%n", winToJavaTime(LL(extra, off + 24)));
                 break;
             case EXTID_EXTT:
-                print("         ->Info-ZIP Extended Timestamp: flag=%x%n",extra[off]);
-                pos = off + 1 ;
+                print("         ->Info-ZIP Extended Timestamp: flag=%x%n", extra[off]);
+                pos = off + 1;
                 while (pos + 4 <= off + sz) {
-                    print("            *%tc%n",
-                          unixToJavaTime(LG(extra, pos)));
+                    print("            *%tc%n", unixToJavaTime(LG(extra, pos)));
                     pos += 4;
                 }
                 break;

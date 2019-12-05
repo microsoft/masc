@@ -23,7 +23,7 @@
  * questions.
  */
 
-package org.apache.accumulo.zipfs;
+package com.microsoft.accumulo.zipfs;
 
 /**
  * @author Xueming Shen

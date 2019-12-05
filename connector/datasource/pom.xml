@@ -3,13 +3,13 @@
   <modelVersion>4.0.0</modelVersion>
   <parent>
     <groupId>com.microsoft.masc</groupId>
-    <artifactId>accumulo-spark</artifactId>
+    <artifactId>microsoft-accumulo-spark</artifactId>
     <version>1.0.0</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
-  <artifactId>accumulo-spark-datasource</artifactId>
-  <name>Apache Spark Connector for Accumulo DataSource</name>
-  <description>Accumulo Connector for Apache Spark.</description>
+  <artifactId>microsoft-accumulo-spark-datasource</artifactId>
+  <name>Microsoft MASC, an Apache Spark connector for Apache Accumulo - DataSource</name>
+  <description>Accumulo Connector for Apache Spark</description>
   <version>1.0.0</version>
   <properties>
     <encoding>UTF-8</encoding>
@@ -25,7 +25,7 @@
     </dependency>
     <dependency>
       <groupId>com.microsoft.masc</groupId>
-      <artifactId>accumulo-spark-zipfs</artifactId>
+      <artifactId>microsoft-accumulo-spark-zipfs</artifactId>
       <version>${project.version}</version>
     </dependency>
     <dependency>
