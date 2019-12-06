@@ -25,5 +25,6 @@ MAVEN_OPTS="verify gpg:sign deploy:deploy -Dmaven.test.skip=true -DskipITs -Doss
 # * visit https://oss.sonatype.org/#stagingRepositories and "close & release" the staged .jar
 # * see https://oss.sonatype.org/#stagingRepositories
 mvn -f ../pom.xml install
+mvn -f ../pom.xml $MAVEN_OPTS -N # don't recurse
 mvn -f ../datasource/pom.xml $MAVEN_OPTS -DshadedArtifactAttached=false
 mvn -f ../iterator/pom.xml $MAVEN_OPTS -DshadedArtifactAttached=false
