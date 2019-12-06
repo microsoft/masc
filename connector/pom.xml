@@ -22,6 +22,33 @@
   <version>1.0.0</version>
   <name>Microsoft MASC, an Apache Spark connector for Apache Accumulo</name>
   <packaging>pom</packaging>
+  <description>Parent POM for Microsoft MASC, an Apache Spark connector for Apache Accumulo</description>
+  <url>https://www.github.com/Microsoft/masc</url>
+  <scm>
+		<url>https://github.com/Microsoft/masc</url>
+		<connection>scm:git:git://github.com/Microsoft/masc.git</connection>
+	</scm>
+  <developers>
+		<developer>
+			<email>marcozo@microsoft.com</email>
+			<name>Markus Cozowicz</name>
+			<url>https://github.com/eisber</url>
+			<id>eisber</id>
+		</developer>
+		<developer>
+			<email>scgraham@microsoft.com</email>
+			<name>Scott Graham</name>
+			<url>https://github.com/gramhagen</url>
+			<id>gramhagen</id>
+		</developer>	
+  </developers>
+  <licenses>
+		<license>
+			<name>MIT License</name>
+			<url>http://www.opensource.org/licenses/mit-license.php</url>
+			<distribution>repo</distribution>
+		</license>
+	</licenses>
   <properties>
     <accumulo.version>2.0.0</accumulo.version>
     <scala.compat.version>2.11</scala.compat.version>
