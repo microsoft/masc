@@ -20,11 +20,11 @@
   <parent>
     <groupId>com.microsoft.masc</groupId>
     <artifactId>microsoft-accumulo-spark</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
   <artifactId>microsoft-accumulo-spark-integration-test</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <name>Microsoft MASC, an Apache Spark connector for Apache Accumulo - Integration Test</name>
   <dependencies>
     <dependency>

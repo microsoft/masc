@@ -20,11 +20,11 @@
   <parent>
     <groupId>com.microsoft.masc</groupId>
     <artifactId>microsoft-accumulo-spark</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.1</version>
   </parent>
   <groupId>com.microsoft.masc</groupId>
   <artifactId>microsoft-accumulo-spark-zipfs</artifactId>
-  <version>1.0.0</version>
+  <version>1.0.1</version>
   <name>Zip File System</name>
   <properties>
     <encoding>UTF-8</encoding>
