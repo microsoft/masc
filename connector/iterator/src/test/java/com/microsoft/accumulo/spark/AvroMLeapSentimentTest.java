@@ -131,12 +131,10 @@ public class AvroMLeapSentimentTest {
 		SortedMap<Key, Value> map = new TreeMap<>();
 		map.put(new Key("key1", "text", ""), new Value(new StringLexicoder().encode("this is good")));
 		map.put(new Key("key2", "text", ""), new Value(new StringLexicoder().encode("this is bad")));
-		// for (int i = 3; i < 8 * 1024; i++) {
-		// map.put(new Key("keyX" + i, "text", ""), new Value(new
-		// StringLexicoder().encode(
-		// "this is bad very very long text " + i + " with a lot of data" + i + " and
-		// some more characters")));
-		// }
+		for (int i = 3; i < 1024 * 1024; i++) {
+			map.put(new Key("keyX" + i, "text", ""), new Value(new StringLexicoder().encode(
+					"this is bad very very long text " + i + " with a lot of data" + i + " and some more characters")));
+		}
 
 		SortedMapIterator parentIterator = new SortedMapIterator(map);
 		AvroRowEncoderIterator iterator = new AvroRowEncoderIterator();
@@ -181,13 +179,22 @@ public class AvroMLeapSentimentTest {
 		assertEquals(0.0, (double) record.get("prediction"), 0.00001);
 
 		// perf test
-		// iterator.next();
+		iterator.next();
 
-		// for (; iterator.hasTop(); iterator.next()) {
-		// // assertEquals(0.0, (double) record.get("prediction"), 0.00001);
-		// assertEquals(0.0, (double) record.get("prediction"), 0.00001);
-		// double x = (double) record.get("prediction");
-		// }
+		long start = System.currentTimeMillis();
+		for (int i = 0; iterator.hasTop(); iterator.next(), i++) {
+			// assertEquals(0.0, (double) record.get("prediction"), 0.00001);
+			double x = (double) record.get("prediction");
+
+			if (i % (16 * 1024) == 0) {
+				System.gc(); // to keep the memory stable
+				long usedMemory = Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory();
+
+				System.out.println("used memory: " + (usedMemory / 1024 / 1024) + "mb");
+			}
+		}
+
+		System.out.println("Time: " + ((System.currentTimeMillis() - start) / 1000.0) + "sec");
 
 		// end
 		iterator.next();
