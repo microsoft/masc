@@ -32,12 +32,12 @@ stages:
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: connector/iterator/target/*-shaded.jar
+        targetPath: connector/iterator/target/microsoft-accumulo-spark-iterator-1.0.2-shaded.jar
         artifactName: accumulo-spark-iterator
 
     - task: PublishPipelineArtifact@1
       inputs:
-        targetPath: connector/datasource/target/*-shaded.jar
+        targetPath: connector/datasource/target/microsoft-accumulo-spark-datasource-1.0.2-shaded.jar
         artifactName: accumulo-spark-datasource
 
     - bash: cd connector/publish && ./publish.sh
