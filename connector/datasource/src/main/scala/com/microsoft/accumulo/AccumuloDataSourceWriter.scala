@@ -37,6 +37,10 @@ class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: Data
   // cannot use .putAll(options.asMap()) due to https://github.com/scala/bug/issues/10418
   options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
 
+  // defaults based on https://accumulo.apache.org/docs/2.x/configuration/client-properties
+  val batchThread = options.get("batchThread").orElse("3").toInt
+  val batchMemory = options.get("batchMemory").orElse("50000000").toLong
+
   val client = Accumulo.newClient().from(properties).build()
   // create table if it's not there
   if (!client.tableOperations.exists(tableName)) {
@@ -60,8 +64,7 @@ class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: Data
   client.close
 
   override def createWriterFactory(): DataWriterFactory[InternalRow] = {
-   
-    new AccumuloDataWriterFactory(tableName, schema, mode, properties)
+    new AccumuloDataWriterFactory(tableName, schema, mode, properties, batchThread, batchMemory)
   }
 
   override def commit(messages: Array[WriterCommitMessage]): Unit = {
@@ -71,9 +74,9 @@ class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: Data
   }
 }
 
-class AccumuloDataWriterFactory(tableName: String, schema: StructType, mode: SaveMode, properties: java.util.Properties)
+class AccumuloDataWriterFactory(tableName: String, schema: StructType, mode: SaveMode, properties: java.util.Properties, batchThread: Int, batchMemory: Long)
   extends DataWriterFactory[InternalRow] {
   override def createDataWriter(partitionId: Int, taskId: Long, epochId: Long): DataWriter[InternalRow] = {
-    new AccumuloDataWriter(tableName, schema, mode, properties)
+    new AccumuloDataWriter(tableName, schema, mode, properties, batchThread, batchMemory)
   }
 }

@@ -17,7 +17,7 @@
 
 package com.microsoft.accumulo
 
-import org.apache.accumulo.core.client.Accumulo
+import org.apache.accumulo.core.client.{Accumulo, BatchWriterConfig}
 import org.apache.accumulo.core.data.Mutation
 import org.apache.accumulo.core.client.lexicoder._
 import org.apache.accumulo.core.security.ColumnVisibility
@@ -29,20 +29,22 @@ import org.apache.spark.sql.types._
 import org.apache.spark.sql.Row
 import org.apache.spark.unsafe.types.UTF8String 
 
-class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode, properties: java.util.Properties)
+class AccumuloDataWriter (
+    tableName: String,
+    schema: StructType,
+    mode: SaveMode,
+    properties: java.util.Properties,
+    batchThread: Int,
+    batchMemory: Long)
   extends DataWriter[InternalRow] {
-
-    // val context = new ClientContext(properties)
-    // TODO: construct BatchWriterConfig from properties if passed in
-    // val batchWriter = new TabletServerBatchWriter(context, new BatchWriterConfig)
-    // private val tableId = Tables.getTableId(context, tableName)
 
     private val rowKeyIdx = schema.fieldIndex(properties.getProperty("rowkey"))
 
     private val client = Accumulo.newClient().from(properties).build()
     
-    // TODO: new BatchWriterConfig().setMaxWriteThreads(numThreads).setMaxMemory(batchMemory)
-    private val batchWriter = client.createBatchWriter(tableName)
+    private val batchWriter = client.createBatchWriter(
+        tableName,
+        new BatchWriterConfig().setMaxWriteThreads(batchThread).setMaxMemory(batchMemory))
 
     private val doubleEncoder = new DoubleLexicoder
     private val floatEncoder = new FloatLexicoder
@@ -87,39 +89,33 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
                                     val cqBytes = stringEncoder.encode(cq.name)
                                     val encoder = getEncoder(cqIdx, cq)
 
-                                    (rowKey: Array[Byte], nestedRecord: InternalRow) => {
+                                    (mutation: Mutation, nestedRecord: InternalRow) => {
                                         // not using the fluent interface to provide backward compat
                                         val value = encoder(nestedRecord)
-                                        if (value != null) {
-                                            val mutation = new Mutation(rowKey)
+                                        if (value != null)
                                             mutation.put(cfBytes, cqBytes, value)
-                                            batchWriter.addMutation(mutation)
-                                        }
                                     }
                                 }
                             }
 
                         // parent function
-                        (rowKey: Array[Byte], record: InternalRow) => {
+                        (mutation: Mutation, record: InternalRow) => {
                             val nestedRecord = structAccessor(record, cfIdx).asInstanceOf[InternalRow]
 
-                            nestedFields.foreach { _(rowKey, nestedRecord) }
+                            nestedFields.foreach { _(mutation, nestedRecord) }
                         }
                    }
                    case _ => { 
                         val cfBytes = stringEncoder.encode(cf.name)
                         val encoder = getEncoder(cfIdx, cf)
 
-                        (rowKey: Array[Byte], record: InternalRow) => {
+                        (mutation: Mutation, record: InternalRow) => {
                             // println(s"\twriting row ${cf.name}")
 
                             // not using the fluent interface to provide backward compat
                             val value = encoder(record)
-                            if (value != null) {
-                                val mutation = new Mutation(rowKey)
+                            if (value != null)
                                 mutation.put(cfBytes, Array.empty[Byte], value)
-                                batchWriter.addMutation(mutation)
-                            }
                         }
                    }
                 }
@@ -135,7 +131,10 @@ class AccumuloDataWriter (tableName: String, schema: StructType, mode: SaveMode,
         // skip if the rowKey is null
         if (rowKeyRaw != null) {
             val rowKey = rowKeyRaw.asInstanceOf[UTF8String].getBytes
-            recordToMutation.foreach { _(rowKey, record) }
+
+            val mutation = new Mutation(rowKey)
+            recordToMutation.foreach { _(mutation, record) }
+            batchWriter.addMutation(mutation)
         }
     }
 
