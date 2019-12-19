@@ -19,7 +19,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.microsoft.masc</groupId>
   <artifactId>microsoft-accumulo-spark</artifactId>
-  <version>1.0.2</version>
+  <version>1.0.3</version>
   <name>Microsoft MASC, an Apache Spark connector for Apache Accumulo</name>
   <packaging>pom</packaging>
   <description>Parent POM for Microsoft MASC, an Apache Spark connector for Apache Accumulo</description>

@@ -317,15 +317,25 @@ public class AvroRowMLeap extends AvroRowConsumer {
             }
           }).asScala().toSeq());
 
-      DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
-      this.resultIterator = ((scala.collection.Iterable<Row>) resultDataFrame.collect()).iterator();
+      // This is faster, but leaks memory
+      // If one could actually get streaming to work (which I don't think is possible
+      // with the Seq[Row] use in DefaultLeapFrame ctor)
+
+      // DefaultLeapFrame resultDataFrame =
+      // this.transformer.transform(this.mleapDataFrame).get();
+      // this.resultIterator = ((scala.collection.Iterable<Row>)
+      // resultDataFrame.collect()).iterator();
 
       // Helpful when debugging
       // this.mleapDataFrame.printSchema();
       // this.mleapDataFrame.show(System.out);
     }
 
-    Row row = resultIterator.next();
+    // just in-case we figure how to create a streaming mleapDataFrame
+    // Row row = resultIterator.next();
+
+    DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
+    Row row = resultDataFrame.collect().apply(0);
 
     // copy mleap output to avro record
     for (OutputField field : this.outputFields)
