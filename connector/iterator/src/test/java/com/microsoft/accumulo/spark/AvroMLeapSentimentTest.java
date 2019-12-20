@@ -131,7 +131,7 @@ public class AvroMLeapSentimentTest {
 		SortedMap<Key, Value> map = new TreeMap<>();
 		map.put(new Key("key1", "text", ""), new Value(new StringLexicoder().encode("this is good")));
 		map.put(new Key("key2", "text", ""), new Value(new StringLexicoder().encode("this is bad")));
-		for (int i = 3; i < 1024 * 1024; i++) {
+		for (int i = 3; i < 128 * 1024; i++) {
 			map.put(new Key("keyX" + i, "text", ""), new Value(new StringLexicoder().encode(
 					"this is bad very very long text " + i + " with a lot of data" + i + " and some more characters")));
 		}
