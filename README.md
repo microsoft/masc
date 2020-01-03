@@ -25,6 +25,9 @@ contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additio
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-datasource/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-datasource)
 [![Maven Central](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-iterator/badge.svg)](https://maven-badges.herokuapp.com/maven-central/com.microsoft.masc/accumulo-spark-iterator)
 
+# License
+All code provided, except where otherwise documented in [OpenSource](OpenSource) and [NOTICE](NOTICE), is covered by the [Apache License 2.0](LICENSE)
+
 # Trademarks
 
 Apache®, [Apache Spark](https://spark.apache.org/), [Apache Accumulo](https://accumulo.apache.org/) and Accumulo are either registered trademarks or trademarks of the [Apache Software Foundation](https://www.apache.org/) in the United States and/or other countries.
