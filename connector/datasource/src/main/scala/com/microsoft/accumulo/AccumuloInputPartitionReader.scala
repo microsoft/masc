@@ -17,22 +17,22 @@
 
 package com.microsoft.accumulo
 
-import org.apache.accumulo.core.client.IteratorSetting
-import org.apache.accumulo.core.client.Accumulo
+import java.io.IOException
+import java.util.Collections
+
+import org.apache.accumulo.core.client.{Accumulo, IteratorSetting}
 import org.apache.accumulo.core.data.{Key, Range}
 import org.apache.accumulo.core.security.Authorizations
 import org.apache.avro.generic.GenericRecord
 import org.apache.avro.io.{BinaryDecoder, DecoderFactory}
 import org.apache.avro.specific.SpecificDatumReader
+import org.apache.hadoop.io.Text
+import org.apache.log4j.Logger
 import org.apache.spark.sql.avro.AvroDeserializer
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader
-import org.apache.spark.sql.types.{StructField, StructType}
-import org.apache.hadoop.io.Text
-import java.io.IOException
-import java.util.{Collections, UUID}
+import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
-import org.apache.log4j.Logger
 
 @SerialVersionUID(1L)
 class AccumuloInputPartitionReader(tableName: String,
@@ -83,9 +83,9 @@ class AccumuloInputPartitionReader(tableName: String,
   }
 
   // AVRO Iterator setup
-  val jsonSchema = AvroUtil.catalystSchemaToJson(inputSchema, outputSchema).json
+  val jsonSchema: String = AvroUtil.catalystSchemaToJson(inputSchema, outputSchema).json
 
-  logger.info(s"JSON schema: ${jsonSchema}")
+  logger.info(s"JSON schema: $jsonSchema")
   avroIterator.addOption("schema", jsonSchema)
   if (filterInJuel.isDefined)
     avroIterator.addOption("filter", filterInJuel.get)

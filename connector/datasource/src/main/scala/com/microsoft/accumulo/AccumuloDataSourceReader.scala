@@ -17,23 +17,21 @@
 
 package com.microsoft.accumulo
 
+import java.util.UUID
+
 import org.apache.accumulo.core.client.Accumulo
+import org.apache.log4j.Logger
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, InputPartitionReader}
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
-import org.apache.spark.sql.sources.Filter
-import org.apache.hadoop.io.Text
-import scala.collection.JavaConverters._
-import org.apache.log4j.Logger
-import java.util.UUID
+import org.apache.spark.sql.types.{DataTypes, StructType}
 
 // TODO: https://github.com/apache/spark/blob/053dd858d38e6107bc71e0aa3a4954291b74f8c8/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsReportPartitioning.java
 // in head of spark github repo
 // import org.apache.spark.sql.connector.read.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
-import org.apache.spark.sql.sources.v2.reader.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
-
 import org.apache.hadoop.io.Text
+import org.apache.spark.sql.sources.v2.reader.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 
 import scala.collection.JavaConverters._
 import scala.collection.mutable.ArrayBuffer
@@ -47,7 +45,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   var filters = Array.empty[Filter]
 
-  val rowKeyColumn = options.get("rowkey").orElse("rowkey")
+  val rowKeyColumn: String = options.get("rowkey").orElse("rowkey")
   val schemaWithOutRowKey = new StructType(schema.filter { _.name != rowKeyColumn }.toArray)
   
   // initialize output schema with full schema
@@ -110,12 +108,12 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     // on deployed clusters a table with no split will return a single empty Text instance
     val containsSingleEmptySplit = 
       tableSplits.size == 1 && 
-      tableSplits.iterator.next.asInstanceOf[Text].getLength == 0
+      tableSplits.iterator.next.getLength == 0
 
     if (tableSplits.size > 1 || !containsSingleEmptySplit)
       splits.insertAll(1, tableSplits.asScala.map(_.getBytes))
 
-    logger.info(s"Splits '${splits}' creating ${splits.length - 1} readers")
+    logger.info(s"Splits '$splits' creating ${splits.length - 1} readers")
 
     new java.util.ArrayList[InputPartition[InternalRow]](
       (1 until splits.length).map(i =>
@@ -140,7 +138,7 @@ class PartitionReaderFactory(tableName: String,
     val startText = if (start.length == 0) "-inf" else s"'${new Text(start)}'"
     val stopText = if (stop.length == 0) "inf" else s"'${new Text(stop)}'"
 
-    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for ${startText} to ${stopText}")
+    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for $startText to $stopText")
 
     new AccumuloInputPartitionReader(tableName, start, stop, inputSchema, outputSchema, properties, rowKeyColumn, filterInJuel)
   }

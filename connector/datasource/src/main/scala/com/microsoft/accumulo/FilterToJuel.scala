@@ -70,10 +70,10 @@ class FilterToJuel(val attributeToVariableMapping: Map[String, String], val rowK
 			case op: StringEndsWith => s"${mapAttribute(op.attribute)}.endsWith(${serializeValue(op.value)})"
 			case op: In =>
 				val values = op.values.map { v => serializeValue(v) } .mkString(",")
-				s"${mapAttribute(op.attribute)}.in(${values})"
+				s"${mapAttribute(op.attribute)}.in($values)"
 			// TODO: not sure if null handling is properly done
 			// TODO:  EqualNullSafe
-			case _ => throw new UnsupportedOperationException(s"Filter ${filter} not supported")
+			case _ => throw new UnsupportedOperationException(s"Filter $filter not supported")
 		}
 	}
 
@@ -92,7 +92,7 @@ class FilterToJuel(val attributeToVariableMapping: Map[String, String], val rowK
 
 		// append if provided
 		if (filterStr.length > 0)
-			filter = filter :+ s"(${filterStr})"
+			filter = filter :+ s"($filterStr)"
 
 		val finalFilter = filter.mkString(" && ")
 

@@ -25,12 +25,12 @@ import org.codehaus.jackson.map.annotate.JsonSerialize.Inclusion
 import scala.beans.BeanProperty
 
 // keeping the property names short to not hit any limits
-case class RowBuilderField(@BeanProperty val cf: String,  // column family
-                           @BeanProperty val cq: String,  // column qualifier
-                           @BeanProperty val fvn: String, // filter variable name
-                           @BeanProperty val t: String,   // type
-                           @BeanProperty val o: Boolean   // output
-                           )
+case class RowBuilderField(@BeanProperty cf: String,  // column family
+                           @BeanProperty cq: String,  // column qualifier
+                           @BeanProperty fvn: String, // filter variable name
+                           @BeanProperty t: String,   // type
+                           @BeanProperty o: Boolean   // output
+                          )
 
 case class JsonSchema(json: String, attributeToVariableMapping: Map[String, String])
 
