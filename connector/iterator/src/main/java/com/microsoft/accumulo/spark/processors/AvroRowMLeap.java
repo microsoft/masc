@@ -335,11 +335,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
     // Row row = resultIterator.next();
 
     DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
-
-    // resultDataFrame.printSchema();
     Row row = resultDataFrame.collect().apply(0);
-
-    // System.out.println(row);
 
     // copy mleap output to avro record
     for (OutputField field : this.outputFields)
