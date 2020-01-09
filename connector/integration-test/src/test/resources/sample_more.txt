@@ -1,0 +1,4 @@
+key,label,text,count
+r3,0.0,this is still bad,5
+r4,1.0,this is still good,3
+r5,0.0,we still don't know yet,2
