@@ -106,8 +106,12 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     val client = Accumulo.newClient().from(properties).build()
     // it's possible to merge on the accumulo side
     // val tableSplits = client.tableOperations().listSplits(tableName, maxPartitions)
-    val tableSplits = client.tableOperations().listSplits(tableName)
-    client.close()
+    val tableSplits = try {
+      client.tableOperations().listSplits(tableName)
+    }
+    finally {
+      client.close()
+    }
 
     // on deployed clusters a table with no split will return a single empty Text instance
     val containsSingleEmptySplit = 

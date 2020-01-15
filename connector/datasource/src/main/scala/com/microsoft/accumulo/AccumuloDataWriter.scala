@@ -140,8 +140,8 @@ class AccumuloDataWriter (
 
     def commit(): WriterCommitMessage = {
         batchWriter.close
-
         client.close
+
         WriteSucceeded
     }
 

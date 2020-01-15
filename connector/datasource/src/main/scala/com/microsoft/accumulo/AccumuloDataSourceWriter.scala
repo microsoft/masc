@@ -42,26 +42,30 @@ class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: Data
   val batchMemory = options.get("batchMemory").orElse("50000000").toLong
 
   val client = Accumulo.newClient().from(properties).build()
-  // create table if it's not there
-  if (!client.tableOperations.exists(tableName)) {
-      // adding splits to a newly created table
-      val splits = new java.util.TreeSet(
-          properties.getProperty("splits", "")
-              .split(",")
-              .map(new Text(_))
-              .toSeq
-              .asJava)
-          
-      logger.info(s"Creating table with splits: ${splits}")
 
-      client.tableOperations.create(tableName)
+  try {
+    // create table if it's not there
+    if (!client.tableOperations.exists(tableName)) {
+        // adding splits to a newly created table
+        val splits = new java.util.TreeSet(
+            properties.getProperty("splits", "")
+                .split(",")
+                .map(new Text(_))
+                .toSeq
+                .asJava)
 
-      if (!splits.isEmpty) {
-          client.tableOperations.addSplits(tableName, splits)
-      }
+        logger.info(s"Creating table with splits: ${splits}")
+
+        client.tableOperations.create(tableName)
+
+        if (!splits.isEmpty) {
+            client.tableOperations.addSplits(tableName, splits)
+        }
+    }
   }
-
-  client.close
+  finally {
+    client.close
+  }
 
   override def createWriterFactory(): DataWriterFactory[InternalRow] = {
     new AccumuloDataWriterFactory(tableName, schema, mode, properties, batchThread, batchMemory)
