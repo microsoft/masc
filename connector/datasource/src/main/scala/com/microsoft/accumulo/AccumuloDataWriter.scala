@@ -132,8 +132,8 @@ class AccumuloDataWriter(tableName: String,
 
   def commit(): WriterCommitMessage = {
     batchWriter.close()
-
     client.close()
+
     WriteSucceeded
   }
 

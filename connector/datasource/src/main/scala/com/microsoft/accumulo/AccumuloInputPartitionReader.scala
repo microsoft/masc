@@ -18,7 +18,6 @@
 package com.microsoft.accumulo
 
 import java.io.IOException
-import java.util.Collections
 
 import org.apache.accumulo.core.client.{Accumulo, IteratorSetting}
 import org.apache.accumulo.core.data.{Key, Range}
@@ -33,11 +32,11 @@ import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.v2.reader.InputPartitionReader
 import org.apache.spark.sql.types.StructType
 import org.apache.spark.unsafe.types.UTF8String
+import scala.collection.JavaConverters._
 
 @SerialVersionUID(1L)
 class AccumuloInputPartitionReader(tableName: String,
-                                   start: Array[Byte],
-                                   stop: Array[Byte],
+                                   ranges: Seq[Seq[Array[Byte]]],
                                    inputSchema: StructType,
                                    outputSchema: StructType,
                                    properties: java.util.Properties,
@@ -48,7 +47,7 @@ class AccumuloInputPartitionReader(tableName: String,
   private val logger = Logger.getLogger(classOf[AccumuloInputPartitionReader])
 
   val defaultPriority = "20"
-  val defaultNumQueryThreads = "1"
+  val defaultNumQueryThreads: String = math.min(16, ranges.length).toString
 
   private val priority = Integer.valueOf(properties.getProperty("priority", defaultPriority))
   // this parameter is impacted by number of accumulo splits and spark partitions and executors
@@ -58,19 +57,19 @@ class AccumuloInputPartitionReader(tableName: String,
   private val client = Accumulo.newClient().from(properties).build()
   private val scanner = client.createBatchScanner(tableName, authorizations, numQueryThreads)
 
-  scanner.setRanges(Collections.singletonList(
-    new Range(if (start.length == 0) null else new Key(start), start.length == 0, 
-      if (stop.length == 0) null else new Key(stop), true))
-  )
+  private def createRange(start: Array[Byte], stop: Array[Byte]) =
+      new Range(
+        if (start.length == 0) null else new Key(start),
+        start.length == 0, 
+        if (stop.length == 0) null else new Key(stop),
+        true)
+
+  scanner.setRanges(ranges.map(t => createRange(t(0), t(1))).asJava)
 
   private val avroIterator = new IteratorSetting(
     priority,
     "AVRO",
     "com.microsoft.accumulo.spark.AvroRowEncoderIterator")
-
-  // drop rowKey from schema
-//  private val schema = new StructType(baseSchema.fields ++ mleapFields)
-//  private val schemaWithRowKey = schema
 
   // only fetch column families we care for (and don't filter for the mleapFields which are artificially added later)
   inputSchema.fields.foreach(f => scanner.fetchColumnFamily(f.name))

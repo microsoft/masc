@@ -17,24 +17,22 @@
 
 package com.microsoft.accumulo
 
-import java.util.UUID
-
 import org.apache.accumulo.core.client.Accumulo
-import org.apache.log4j.Logger
 import org.apache.spark.sql.catalyst.InternalRow
 import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, InputPartitionReader}
 import org.apache.spark.sql.types.{DataTypes, StructType}
+import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
+import org.apache.log4j.Logger
+import java.util.UUID
 
 // TODO: https://github.com/apache/spark/blob/053dd858d38e6107bc71e0aa3a4954291b74f8c8/sql/catalyst/src/main/java/org/apache/spark/sql/connector/read/SupportsReportPartitioning.java
 // in head of spark github repo
 // import org.apache.spark.sql.connector.read.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
-import org.apache.hadoop.io.Text
 import org.apache.spark.sql.sources.v2.reader.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 
-import scala.collection.JavaConverters._
-import scala.collection.mutable.ArrayBuffer
 
 @SerialVersionUID(1L)
 class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
@@ -90,7 +88,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   def planInputPartitions: java.util.List[InputPartition[InternalRow]] = {
     val tableName = options.tableName.get
-    val maxPartitions = options.getInt("maxPartitions", defaultMaxPartitions) - 1
+    val maxPartitions = options.getInt("maxPartitions", defaultMaxPartitions)
     val properties = new java.util.Properties()
     // can use .putAll(options.asMap()) due to https://github.com/scala/bug/issues/10418
     options.asMap.asScala.foreach { case (k, v) => properties.setProperty(k, v) }
@@ -102,31 +100,47 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     val splits = ArrayBuffer(Array.empty[Byte], Array.empty[Byte])
 
     val client = Accumulo.newClient().from(properties).build()
-    val tableSplits = client.tableOperations().listSplits(tableName, maxPartitions) 
-    client.close()
+    // it's possible to merge on the accumulo side
+    // val tableSplits = client.tableOperations().listSplits(tableName, maxPartitions)
+    val tableSplits = try {
+      client.tableOperations().listSplits(tableName)
+    }
+    finally {
+      client.close()
+    }
 
     // on deployed clusters a table with no split will return a single empty Text instance
-    val containsSingleEmptySplit = 
-      tableSplits.size == 1 && 
-      tableSplits.iterator.next.getLength == 0
+    val containsSingleEmptySplit =
+      tableSplits.size == 1 &&
+        tableSplits.iterator.next.getLength == 0
 
     if (tableSplits.size > 1 || !containsSingleEmptySplit)
       splits.insertAll(1, tableSplits.asScala.map(_.getBytes))
 
-    logger.info(s"Splits '$splits' creating ${splits.length - 1} readers")
+    // convert splits to ranges
+    var ranges = splits.sliding(2).toSeq
 
-    new java.util.ArrayList[InputPartition[InternalRow]](
-      (1 until splits.length).map(i =>
-        new PartitionReaderFactory(tableName, splits(i - 1), splits(i),
-          schemaWithOutRowKey, requiredSchema, properties, rowKeyColumn, filterInJuel)
-      ).asJava
-    )
+    // optionally shuffle
+    if (options.getBoolean("shuffle.ranges", true))
+      ranges = scala.util.Random.shuffle(ranges)
+
+    // create groups of ranges
+    val numReaders = scala.math.min(ranges.length, maxPartitions)
+    val batchSize = ranges.length / numReaders
+    val batchRanges = ranges.sliding(batchSize, batchSize)
+
+    logger.info(s"Splits '$batchRanges' creating $numReaders readers")
+
+    val foo = batchRanges.map(r => new PartitionReaderFactory(tableName, r,
+      schemaWithOutRowKey, requiredSchema, properties, rowKeyColumn, filterInJuel))
+      .toSeq.asJava
+
+    new java.util.ArrayList[InputPartition[InternalRow]](foo)
   }
 }
 
 class PartitionReaderFactory(tableName: String,
-                             start: Array[Byte],
-                             stop: Array[Byte],
+                             ranges: Seq[Seq[Array[Byte]]],
                              inputSchema: StructType,
                              outputSchema: StructType,
                              properties: java.util.Properties,
@@ -135,11 +149,11 @@ class PartitionReaderFactory(tableName: String,
   extends InputPartition[InternalRow] {
 
   def createPartitionReader: InputPartitionReader[InternalRow] = {
-    val startText = if (start.length == 0) "-inf" else s"'${new Text(start)}'"
-    val stopText = if (stop.length == 0) "inf" else s"'${new Text(stop)}'"
 
-    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for $startText to $stopText")
+    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for $ranges")
 
-    new AccumuloInputPartitionReader(tableName, start, stop, inputSchema, outputSchema, properties, rowKeyColumn, filterInJuel)
+    new AccumuloInputPartitionReader(tableName, ranges, inputSchema, outputSchema, properties, rowKeyColumn, filterInJuel)
   }
+
+  //  override def preferredLocations(): Array[String] = Array("ab", "c")
 }
