@@ -37,6 +37,7 @@ import java.lang.Exception;
 
 import static org.junit.Assert.assertEquals;
 
+
 public class ReadIT {
       private SparkSession sc;
       private HashMap<String, String> propMap;
@@ -306,22 +307,42 @@ public class ReadIT {
                     // specify the file
                     .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
 
-            sampleDf.printSchema();
-            sampleDf.show(10);
+            Dataset<Row> sampleMoreDf = sc.read()
+                    // configure the header
+                    .option("header", "true").option("inferSchema", "true")
+                    // specify the file
+                    .csv(Paths.get("target/test-classes/sample_more.txt").toUri().toString());
 
+            // sampleDf.printSchema();
+            // sampleDf.show(10);
+
+            // test default write (ErrorIfExists) will create table
             sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
-
-            // read from accumulo
             Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
-            accumuloDf.show(10);
-            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r2");
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2");
 
             // this should throw an error
             try {
+                  // default write (ErrorIfExists) will fail with existing table
                   sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
                   assert(false);
             } catch(Exception e) {
                   assertEquals(e.getMessage(), "table sample_table_mode already exists");
             }
+
+            // test overwrite data in existing table
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).mode("overwrite").save();
+            accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2");
+
+            // test ignore writing data to existing table
+            sampleMoreDf.write().format("com.microsoft.accumulo").options(propMap).mode("ignore").save();
+            accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2");
+
+            // test appending data to existing table
+            sampleMoreDf.write().format("com.microsoft.accumulo").options(propMap).mode("append").save();
+            accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2", "r3", "r4", "r5");
       }
 }
