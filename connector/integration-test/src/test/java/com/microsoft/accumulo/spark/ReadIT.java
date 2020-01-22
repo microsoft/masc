@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.Map.Entry;
+import java.lang.Exception;
 
 import static org.junit.Assert.assertEquals;
 
@@ -316,6 +317,11 @@ public class ReadIT {
             assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r2");
 
             // this should throw an error
-            sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
+            try {
+                  sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
+                  assert(false);
+            } catch(Exception e) {
+                  assertEquals(e.getMessage(), "table sample_table_mode already exists");
+            }
       }
 }
