@@ -44,11 +44,31 @@ The connector is composed of two components:
 - The [Datasource](datasource) component provides the interface used on the Spark side
 - The [Iterator](iterator) component provides server-side functionality on the Accumulo side
 
-The components can be built and test with Maven using Java 8+
+The components can be built and tested with Maven (version 3.3.9 or higher) using Java version 8.
 ```
-mvn install
+mvn clean install
 ```
 
-Once the targets have been built the following steps are needed:
+Alternatively the JARs are published to the Maven Central Repository
+- [Datasource](https://mvnrepository.com/artifact/com.microsoft.masc/microsoft-accumulo-spark-datasource)
+- [Iterator](https://mvnrepository.com/artifact/com.microsoft.masc/microsoft-accumulo-spark-iterator)
+
+The following steps are needed to deploy the connector:
 1) Deploy iterator JAR to Accumulo lib folders on all nodes and restart the cluster
+```
+# use locally built shaded jar in connector/iterator/target folder
+#  or
+# use maven to download iterator from central repository
+mvn dependency:get -Dartifact=com.microsoft.masc:microsoft-accumulo-spark-iterator:[VERSION]
+```
 2) Add Datasource JAR in Spark
+```
+# use locally built shaded jar in connector/datasource/target folder or 
+#  or
+# pull in package from maven central repository
+com.microsoft.masc:microsoft-accumulo-spark-datasource:[VERSION]
+```
+
+## Spark Runtime Java Version
+
+While the iterator JAR can run on Accumulo tablet servers using JDK versions >= 1.8, the Spark Datasource component is only compatible with JDK version 1.8 (not higher) due to [Spark's Java support](https://spark.apache.org/docs/latest/).
