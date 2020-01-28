@@ -44,9 +44,9 @@ The connector is composed of two components:
 - The [Datasource](datasource) component provides the interface used on the Spark side
 - The [Iterator](iterator) component provides server-side functionality on the Accumulo side
 
-The components can be built and tested with Maven (version 3.3.9 or higher) using Java (version 11 or higher)
+The components can be built and tested with Maven (version 3.3.9 or higher) using Java version 8.
 ```
-mvn clean package
+mvn clean install
 ```
 
 Alternatively the JARs are published to the Maven Central Repository
