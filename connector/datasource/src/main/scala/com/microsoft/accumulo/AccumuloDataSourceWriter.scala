@@ -30,7 +30,7 @@ import org.apache.log4j.Logger
 
 class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: DataSourceOptions)
   extends DataSourceWriter {
-  
+
   private val logger = Logger.getLogger(classOf[AccumuloDataSourceWriter])
 
   val tableName: String = options.tableName.get
@@ -46,19 +46,26 @@ class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: Data
   val tableExists: Boolean = client.tableOperations.exists(tableName)
   val ignore: Boolean = mode == SaveMode.Ignore && tableExists
 
-  // respect write mode
-  if (tableExists) {
-    if (mode == SaveMode.ErrorIfExists)
-      throw new Exception(s"table $tableName already exists")
-    else if (mode == SaveMode.Overwrite) {
-      client.tableOperations.delete(tableName)
+  // enforce write mode
+  try {
+    if (tableExists) {
+      if (mode == SaveMode.ErrorIfExists)
+        // this should throw an error
+        createTable()
+      else if (mode == SaveMode.Overwrite) {
+        client.tableOperations.delete(tableName)
+        createTable()
+      }
+    } else {
       createTable()
     }
-  } else {
-    createTable()
+  } catch {
+    // re-throw exception
+    case exception: Throwable => throw exception
+  } finally {
+    // always close the client
+    client.close()
   }
-
-  client.close()
 
   def createTable(): Unit = {
     // adding splits to a newly created table
