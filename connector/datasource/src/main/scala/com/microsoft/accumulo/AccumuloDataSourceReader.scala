@@ -18,14 +18,13 @@
 package com.microsoft.accumulo
 
 import org.apache.accumulo.core.client.Accumulo
-import org.apache.accumulo.core.data.{Key, Range}
 import org.apache.spark.sql.catalyst.InternalRow
+import org.apache.spark.sql.sources.Filter
 import org.apache.spark.sql.sources.v2.DataSourceOptions
 import org.apache.spark.sql.sources.v2.reader.{DataSourceReader, InputPartition, InputPartitionReader}
-import org.apache.spark.sql.types.{DataTypes, StructField, StructType}
-import org.apache.spark.sql.sources.Filter
-import org.apache.hadoop.io.Text
+import org.apache.spark.sql.types.{DataTypes, StructType}
 import scala.collection.JavaConverters._
+import scala.collection.mutable.ArrayBuffer
 import org.apache.log4j.Logger
 import java.util.UUID
 
@@ -34,9 +33,6 @@ import java.util.UUID
 // import org.apache.spark.sql.connector.read.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 import org.apache.spark.sql.sources.v2.reader.{SupportsPushDownFilters, SupportsPushDownRequiredColumns}
 
-import org.apache.hadoop.io.Text
-
-import scala.collection.mutable.ArrayBuffer
 
 @SerialVersionUID(1L)
 class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
@@ -47,7 +43,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
 
   var filters = Array.empty[Filter]
 
-  val rowKeyColumn = options.get("rowkey").orElse("rowkey")
+  val rowKeyColumn: String = options.get("rowkey").orElse("rowkey")
   val schemaWithOutRowKey = new StructType(schema.filter { _.name != rowKeyColumn }.toArray)
   
   // initialize output schema with full schema
@@ -114,9 +110,9 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     }
 
     // on deployed clusters a table with no split will return a single empty Text instance
-    val containsSingleEmptySplit = 
-      tableSplits.size == 1 && 
-      tableSplits.iterator.next.asInstanceOf[Text].getLength == 0
+    val containsSingleEmptySplit =
+      tableSplits.size == 1 &&
+        tableSplits.iterator.next.getLength == 0
 
     if (tableSplits.size > 1 || !containsSingleEmptySplit)
       splits.insertAll(1, tableSplits.asScala.map(_.getBytes))
@@ -125,7 +121,7 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     var ranges = splits.sliding(2).toSeq
 
     // optionally shuffle
-    if (options.getBoolean("shuffle.ranges", true)) 
+    if (options.getBoolean("shuffle.ranges", true))
       ranges = scala.util.Random.shuffle(ranges)
 
     // create groups of ranges
@@ -133,11 +129,11 @@ class AccumuloDataSourceReader(schema: StructType, options: DataSourceOptions)
     val batchSize = ranges.length / numReaders
     val batchRanges = ranges.sliding(batchSize, batchSize)
 
-    logger.info(s"Splits '${batchRanges}' creating ${numReaders} readers")
-    
+    logger.info(s"Splits '$batchRanges' creating $numReaders readers")
+
     val foo = batchRanges.map(r => new PartitionReaderFactory(tableName, r,
-          schemaWithOutRowKey, requiredSchema, properties, rowKeyColumn, filterInJuel))
-          .toSeq.asJava
+      schemaWithOutRowKey, requiredSchema, properties, rowKeyColumn, filterInJuel))
+      .toSeq.asJava
 
     new java.util.ArrayList[InputPartition[InternalRow]](foo)
   }
@@ -154,10 +150,10 @@ class PartitionReaderFactory(tableName: String,
 
   def createPartitionReader: InputPartitionReader[InternalRow] = {
 
-    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for ${ranges}")
+    Logger.getLogger(classOf[AccumuloDataSourceReader]).info(s"Partition reader for $ranges")
 
     new AccumuloInputPartitionReader(tableName, ranges, inputSchema, outputSchema, properties, rowKeyColumn, filterInJuel)
   }
 
-//  override def preferredLocations(): Array[String] = Array("ab", "c")
+  //  override def preferredLocations(): Array[String] = Array("ab", "c")
 }

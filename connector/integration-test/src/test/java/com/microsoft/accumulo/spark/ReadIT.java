@@ -1,21 +1,20 @@
 package com.microsoft.accumulo.spark;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-
-import java.io.File;
-import java.util.Properties;
-import org.apache.accumulo.minicluster.MiniAccumuloCluster;
+import ml.combust.mleap.spark.SimpleSparkSerializer;
 import org.apache.accumulo.core.client.Accumulo;
 import org.apache.accumulo.core.client.AccumuloClient;
-import org.apache.accumulo.core.client.lexicoder.IntegerLexicoder;
-import org.apache.accumulo.core.client.BatchWriter;
-import org.apache.accumulo.core.data.Mutation;
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.apache.spark.api.java.JavaSparkContext;
+import org.apache.accumulo.core.client.Scanner;
+import org.apache.accumulo.core.data.Key;
+import org.apache.accumulo.core.data.Value;
+import org.apache.accumulo.core.security.Authorizations;
+import org.apache.accumulo.minicluster.MiniAccumuloCluster;
 import org.apache.spark.SparkConf;
+import org.apache.spark.ml.Pipeline;
+import org.apache.spark.ml.PipelineModel;
+import org.apache.spark.ml.PipelineStage;
+import org.apache.spark.ml.classification.LogisticRegression;
+import org.apache.spark.ml.feature.CountVectorizer;
+import org.apache.spark.ml.feature.RegexTokenizer;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
@@ -24,35 +23,20 @@ import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.Metadata;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
-import org.apache.spark.sql.functions;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
 
-import java.util.Arrays;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.List;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
+import java.io.File;
 import java.io.IOException;
-import org.apache.accumulo.core.security.Authorizations;
-import org.apache.accumulo.core.client.Scanner;
-import org.apache.accumulo.core.data.Key;
-import org.apache.accumulo.core.data.Value;
-import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.stream.Collectors;
+import java.lang.Exception;
 
-import org.apache.spark.ml.feature.RegexTokenizer;
-import org.apache.spark.ml.feature.CountVectorizer;
-import org.apache.spark.ml.classification.LogisticRegression;
-import org.apache.spark.ml.classification.LogisticRegressionModel;
-import org.apache.spark.ml.Pipeline;
-import org.apache.spark.ml.PipelineStage;
-import org.apache.spark.ml.PipelineModel;
-import org.apache.spark.ml.mleap.SparkUtil;
-import ml.combust.bundle.BundleFile;
-import ml.combust.bundle.serializer.SerializationFormat;
-import ml.combust.mleap.spark.SimpleSparkSerializer;
+import static org.junit.Assert.assertEquals;
+
 
 public class ReadIT {
       private SparkSession sc;
@@ -179,20 +163,16 @@ public class ReadIT {
             // make sure we only get 1 output file
             df.write().mode(SaveMode.Overwrite).csv(result.toURI().toString());
 
-            List<String> resultValues = Files.readAllLines(
-                        // find the csv file inside the container
-                        Files.list(Paths.get(result.getAbsolutePath(), "/")).filter(f -> f.toString().endsWith(".csv"))
-                                    .findAny().get())
-                        // read the file back
-                        .stream()
-                        // .map(l -> Double.parseDouble(l))
-                        .collect(Collectors.toList());
+            List<String> resultValues = new ArrayList<>(Files.readAllLines(
+                    // find the csv file inside the container
+                    Files.list(Paths.get(result.getAbsolutePath(), "/")).filter(f -> f.toString().endsWith(".csv"))
+                            .findAny().get()));
 
             // match size
             assertEquals(expectedValues.length, resultValues.size());
 
             for (int i = 0; i < expectedValues.length; i++)
-                  assertEquals(resultValues.get(i).toString(), expectedValues[i].toString());
+                  assertEquals(resultValues.get(i), expectedValues[i].toString());
       }
 
       @Test
@@ -298,7 +278,7 @@ public class ReadIT {
             sampleDfNullable.write().format("com.microsoft.accumulo").options(propMap).save();
 
             // read from accumulo
-            StructType schema = new StructType(new StructField[] { // include key as weel
+            StructType schema = new StructType(new StructField[] { // include key as well
                         new StructField("key", DataTypes.StringType, true, Metadata.empty()),
                         new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
                         new StructField("text", DataTypes.StringType, true, Metadata.empty()),
@@ -309,5 +289,61 @@ public class ReadIT {
             accumuloDf.show(10);
 
             assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r2");
+      }
+
+      @Test
+      public void testDataWriteModes() throws Exception {
+            String tableName = "sample_table_mode";
+            propMap.put("table", tableName);
+
+            StructType schema = new StructType(new StructField[] { // include key as well
+                    new StructField("key", DataTypes.StringType, true, Metadata.empty()),
+                    new StructField("label", DataTypes.DoubleType, true, Metadata.empty()),
+                    new StructField("text", DataTypes.StringType, true, Metadata.empty()),
+                    new StructField("count", DataTypes.IntegerType, true, Metadata.empty()) });
+
+            Dataset<Row> sampleDf = sc.read()
+                    // configure the header
+                    .option("header", "true").option("inferSchema", "true")
+                    // specify the file
+                    .csv(Paths.get("target/test-classes/sample.txt").toUri().toString());
+
+            Dataset<Row> sampleMoreDf = sc.read()
+                    // configure the header
+                    .option("header", "true").option("inferSchema", "true")
+                    // specify the file
+                    .csv(Paths.get("target/test-classes/sample_more.txt").toUri().toString());
+
+            // sampleDf.printSchema();
+            // sampleDf.show(10);
+
+            // test default write (ErrorIfExists) will create table
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
+            Dataset<Row> accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2");
+
+            // this should throw an error
+            try {
+                  // default write (ErrorIfExists) will fail with existing table
+                  sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
+                  assert(false);
+            } catch(Exception e) {
+                  assertEquals(String.format("Table %s exists", tableName), e.getMessage());
+            }
+
+            // test overwrite data in existing table
+            sampleDf.write().format("com.microsoft.accumulo").options(propMap).mode("overwrite").save();
+            accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2");
+
+            // test ignore writing data to existing table
+            sampleMoreDf.write().format("com.microsoft.accumulo").options(propMap).mode("ignore").save();
+            accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2");
+
+            // test appending data to existing table
+            sampleMoreDf.write().format("com.microsoft.accumulo").options(propMap).mode("append").save();
+            accumuloDf = sc.read().format("com.microsoft.accumulo").options(propMap).schema(schema).load();
+            assertDataframe(accumuloDf.coalesce(1).orderBy("key").select("key"), "r0", "r1", "r2", "r3", "r4", "r5");
       }
 }
