@@ -76,11 +76,11 @@ class AccumuloDataSourceWriter(schema: StructType, mode: SaveMode, options: Data
         .toSeq
         .asJava)
 
-    logger.info(s"Creating table with splits: $splits")
-
+    logger.info(s"Creating table: $tableName")
     client.tableOperations.create(tableName)
 
     if (!splits.isEmpty) {
+      logger.info(s"Adding splits: $splits")
       client.tableOperations.addSplits(tableName, splits)
     }
   }

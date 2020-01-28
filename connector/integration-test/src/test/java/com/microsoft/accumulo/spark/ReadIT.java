@@ -293,7 +293,8 @@ public class ReadIT {
 
       @Test
       public void testDataWriteModes() throws Exception {
-            propMap.put("table", "sample_table_mode");
+            String tableName = "sample_table_mode";
+            propMap.put("table", tableName);
 
             StructType schema = new StructType(new StructField[] { // include key as well
                     new StructField("key", DataTypes.StringType, true, Metadata.empty()),
@@ -327,7 +328,7 @@ public class ReadIT {
                   sampleDf.write().format("com.microsoft.accumulo").options(propMap).save();
                   assert(false);
             } catch(Exception e) {
-                  assertEquals(e.getMessage(), "table sample_table_mode already exists");
+                  assertEquals(String.format("Table %s exists", tableName), e.getMessage());
             }
 
             // test overwrite data in existing table
