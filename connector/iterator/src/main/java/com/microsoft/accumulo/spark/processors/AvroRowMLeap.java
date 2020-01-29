@@ -52,6 +52,7 @@ import ml.combust.mleap.runtime.frame.ArrayRow;
 import ml.combust.mleap.runtime.frame.DefaultLeapFrame;
 import ml.combust.mleap.runtime.frame.Row;
 import ml.combust.mleap.runtime.frame.Transformer;
+import ml.combust.mleap.runtime.frame.RowTransformer;
 import ml.combust.bundle.BundleFile;
 import ml.combust.mleap.runtime.javadsl.ContextBuilder;
 
@@ -171,11 +172,12 @@ public class AvroRowMLeap extends AvroRowConsumer {
 
   private List<OutputField> outputFields;
   private Schema schema;
-  private DefaultLeapFrame mleapDataFrame;
   private Object[] mleapValues;
   private Field[] mleapAvroFields;
   private StructType mleapSchema;
   private Transformer transformer;
+  private RowTransformer rowTransformer;
+  private ArrayRow arrayRow;
 
   private AvroRowMLeap(Transformer transformer) {
     this.transformer = transformer;
@@ -265,6 +267,9 @@ public class AvroRowMLeap extends AvroRowConsumer {
     this.mleapSchema = StructType.apply(mleapFields).get();
     this.mleapValues = new Object[this.mleapAvroFields.length];
 
+    this.rowTransformer = transformer.transform(RowTransformer.apply(this.mleapSchema)).get();
+    this.arrayRow = new ArrayRow(WrappedArray.make(this.mleapValues));
+
     // generate the final schema
     StructType outputSchema = this.transformer
         // could also use scala.collection.Seq$.MODULE$.empty() but we'd get a type
@@ -283,8 +288,6 @@ public class AvroRowMLeap extends AvroRowConsumer {
     }
   }
 
-  private scala.collection.Iterator<Row> resultIterator;
-  private boolean rowAvailable;
 
   @Override
   protected boolean consumeInternal(Text rowKey, IndexedRecord record) throws IOException {
@@ -293,49 +296,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
     for (int i = 0; i < this.mleapAvroFields.length; i++)
       this.mleapValues[i] = record.get(this.mleapAvroFields[i].pos());
 
-    this.rowAvailable = true;
-
-    if (this.resultIterator == null) {
-      final ArrayRow arrayRow = new ArrayRow(WrappedArray.make(this.mleapValues));
-
-      this.mleapDataFrame = new DefaultLeapFrame(this.mleapSchema,
-          JavaConverters.asScalaIteratorConverter(new java.util.Iterator<Row>() {
-
-            @Override
-            public boolean hasNext() {
-              if (!AvroRowMLeap.this.rowAvailable)
-                throw new IllegalStateException("Only one row at a time should be consumed");
-
-              return AvroRowMLeap.this.rowAvailable;
-            }
-
-            @Override
-            public Row next() {
-              AvroRowMLeap.this.rowAvailable = false;
-
-              return arrayRow;
-            }
-          }).asScala().toSeq());
-
-      // This is faster, but leaks memory
-      // If one could actually get streaming to work (which I don't think is possible
-      // with the Seq[Row] use in DefaultLeapFrame ctor)
-
-      // DefaultLeapFrame resultDataFrame =
-      // this.transformer.transform(this.mleapDataFrame).get();
-      // this.resultIterator = ((scala.collection.Iterable<Row>)
-      // resultDataFrame.collect()).iterator();
-
-      // Helpful when debugging
-      // this.mleapDataFrame.printSchema();
-      // this.mleapDataFrame.show(System.out);
-    }
-
-    // just in-case we figure how to create a streaming mleapDataFrame
-    // Row row = resultIterator.next();
-
-    DefaultLeapFrame resultDataFrame = this.transformer.transform(this.mleapDataFrame).get();
-    Row row = resultDataFrame.collect().apply(0);
+    Row row = this.rowTransformer.transform(this.arrayRow);
 
     // copy mleap output to avro record
     for (OutputField field : this.outputFields)
