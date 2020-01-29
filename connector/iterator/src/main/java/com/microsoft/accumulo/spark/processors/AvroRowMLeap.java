@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 
 import com.microsoft.accumulo.spark.record.RowBuilderField;
 import com.microsoft.accumulo.spark.record.RowBuilderType;
+
 import org.apache.avro.Schema;
 import org.apache.avro.Schema.Field;
 import org.apache.avro.Schema.Type;
@@ -178,6 +179,9 @@ public class AvroRowMLeap extends AvroRowConsumer {
   private Transformer transformer;
   private RowTransformer rowTransformer;
   private ArrayRow arrayRow;
+  private int[] inputIndices;
+  private int[] outputIndicesSource;
+  private int[] outputIndicesDest;
 
   private AvroRowMLeap(Transformer transformer) {
     this.transformer = transformer;
@@ -286,21 +290,35 @@ public class AvroRowMLeap extends AvroRowConsumer {
 
       logger.info("Output field: " + field.getField().getColumnFamily() + ":" + field.getField().getType());
     }
-  }
 
+    // cache indices
+    this.inputIndices = new int[this.mleapAvroFields.length];
+
+    for (int i = 0; i < this.mleapAvroFields.length; i++)
+      this.inputIndices[i] = this.mleapAvroFields[i].pos();
+
+    this.outputIndicesSource = new int[this.outputFields.size()];
+    this.outputIndicesDest = new int[this.outputFields.size()];
+
+    for (int i = 0; i < this.outputFields.size(); i++) {
+      OutputField of = this.outputFields.get(i);
+      this.outputIndicesSource[i] = of.getOutputFieldIndex();
+      this.outputIndicesDest[i] = of.getAvroFieldIndex();
+    }
+  }
 
   @Override
   protected boolean consumeInternal(Text rowKey, IndexedRecord record) throws IOException {
-
     // surface data to MLeap dataframe
-    for (int i = 0; i < this.mleapAvroFields.length; i++)
-      this.mleapValues[i] = record.get(this.mleapAvroFields[i].pos());
+    // Note: experimented with a wrapper that around the AvroRecord and it doesn't change anything in performance
+    for (int i = 0; i < this.inputIndices.length; i++)
+      this.mleapValues[i] = record.get(this.inputIndices[i]);
 
     Row row = this.rowTransformer.transform(this.arrayRow);
 
     // copy mleap output to avro record
-    for (OutputField field : this.outputFields)
-      record.put(field.getAvroFieldIndex(), row.get(field.getOutputFieldIndex()));
+    for (int i = 0; i < this.outputIndicesSource.length; i++) 
+      record.put(this.outputIndicesDest[i], row.get(this.outputIndicesSource[i]));
 
     return true;
   }
