@@ -78,10 +78,10 @@ public class AvroRowMLeap extends AvroRowConsumer {
   private final static Logger logger = Logger.getLogger(AvroRowMLeap.class);
 
   private final static Cache<String, Transformer> transformers = CacheBuilder.newBuilder()
-      // expectation is that iterators are re-inited rather frequenly
+      // expectation is that iterators are re-inited rather frequently
       .expireAfterAccess(5, TimeUnit.MINUTES)
       // build up
-      .<String, Transformer>build();
+      .build();
 
   private static Transformer CreateTransformer(String mleapGuid, String mleapBundleBase64) throws IOException {
     long start = System.nanoTime();
@@ -95,7 +95,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
     MleapContext mleapContext = new ContextBuilder().createMleapContext();
 
     try (
-        FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), mleapFilePath, new HashMap<String, Object>())) {
+        FileSystem zfs = new ZipFileSystem(new ZipFileSystemProvider(), mleapFilePath, new HashMap<>())) {
       try (BundleFile bf = new BundleFile(zfs, zfs.getPath("/"))) {
         Transformer transformer = (Transformer) bf.load(mleapContext).get().root();
 
@@ -134,7 +134,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
   /**
    * Definition of the output fields.
    */
-  private class OutputField {
+  private static class OutputField {
     private RowBuilderField field;
 
     private int outputFieldIndex;
@@ -174,8 +174,6 @@ public class AvroRowMLeap extends AvroRowConsumer {
   private List<OutputField> outputFields;
   private Schema schema;
   private Object[] mleapValues;
-  private Field[] mleapAvroFields;
-  private StructType mleapSchema;
   private Transformer transformer;
   private RowTransformer rowTransformer;
   private ArrayRow arrayRow;
@@ -226,10 +224,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
         // drop non-supported
         .filter(Objects::nonNull)
         // configure non-nullable to be compatible with MLeap to Spark type conversation
-        .map(field -> {
-          field.getField().setNullable(false);
-          return field;
-        }).collect(Collectors.toList());
+        .peek(field -> field.getField().setNullable(false)).collect(Collectors.toList());
   }
 
   @Override
@@ -267,18 +262,18 @@ public class AvroRowMLeap extends AvroRowConsumer {
       // logger.info("Input field: " + field);
     }
 
-    this.mleapAvroFields = avroFields.toArray(new Field[0]);
-    this.mleapSchema = StructType.apply(mleapFields).get();
-    this.mleapValues = new Object[this.mleapAvroFields.length];
+    Field[] mleapAvroFields = avroFields.toArray(new Field[0]);
+    StructType mleapSchema = StructType.apply(mleapFields).get();
+    this.mleapValues = new Object[mleapAvroFields.length];
 
-    this.rowTransformer = transformer.transform(RowTransformer.apply(this.mleapSchema)).get();
+    this.rowTransformer = transformer.transform(RowTransformer.apply(mleapSchema)).get();
     this.arrayRow = new ArrayRow(WrappedArray.make(this.mleapValues));
 
     // generate the final schema
     StructType outputSchema = this.transformer
         // could also use scala.collection.Seq$.MODULE$.empty() but we'd get a type
         // warning
-        .transform(new DefaultLeapFrame(this.mleapSchema, scala.collection.Seq$.MODULE$.<Row>newBuilder().result()))
+        .transform(new DefaultLeapFrame(mleapSchema, scala.collection.Seq$.MODULE$.<Row>newBuilder().result()))
         .get().schema();
 
     for (OutputField field : this.outputFields) {
@@ -292,10 +287,10 @@ public class AvroRowMLeap extends AvroRowConsumer {
     }
 
     // cache indices
-    this.inputIndices = new int[this.mleapAvroFields.length];
+    this.inputIndices = new int[mleapAvroFields.length];
 
-    for (int i = 0; i < this.mleapAvroFields.length; i++)
-      this.inputIndices[i] = this.mleapAvroFields[i].pos();
+    for (int i = 0; i < mleapAvroFields.length; i++)
+      this.inputIndices[i] = mleapAvroFields[i].pos();
 
     this.outputIndicesSource = new int[this.outputFields.size()];
     this.outputIndicesDest = new int[this.outputFields.size()];
@@ -308,7 +303,7 @@ public class AvroRowMLeap extends AvroRowConsumer {
   }
 
   @Override
-  protected boolean consumeInternal(Text rowKey, IndexedRecord record) throws IOException {
+  protected boolean consumeInternal(Text rowKey, IndexedRecord record) {
     // surface data to MLeap dataframe
     // Note: experimented with a wrapper that around the AvroRecord and it doesn't change anything in performance
     for (int i = 0; i < this.inputIndices.length; i++)
