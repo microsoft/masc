@@ -153,7 +153,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
       try {
         StringWriter sw = new StringWriter();
         ex.printStackTrace(new PrintWriter(sw));
-        Files.write(Paths.get(this.exceptionLogFile), (ex.getMessage().toString() + "\n" + sw.toString()).getBytes(),
+        Files.write(Paths.get(this.exceptionLogFile), (ex.getMessage() + "\n" + sw.toString()).getBytes(),
             StandardOpenOption.CREATE, StandardOpenOption.APPEND);
       } catch (IOException e) {
         // swallow
