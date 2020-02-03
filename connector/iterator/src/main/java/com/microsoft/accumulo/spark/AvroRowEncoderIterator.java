@@ -133,6 +133,15 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
 
   private String exceptionLogFile;
 
+  /**
+   * Output key column family
+   */ 
+  private final Text keyCF = new Text("v");
+
+  /**
+   * Output key column qualifier
+   */ 
+  private final Text keyCQ = new Text("");
   // private StopWatch stopWatchCellCollection;
 
   // private StopWatch stopWatchSerialization;
@@ -144,7 +153,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
       try {
         StringWriter sw = new StringWriter();
         ex.printStackTrace(new PrintWriter(sw));
-        Files.write(Paths.get(this.exceptionLogFile), (ex.getMessage().toString() + "\n" + sw.toString()).getBytes(),
+        Files.write(Paths.get(this.exceptionLogFile), (ex.getMessage() + "\n" + sw.toString()).getBytes(),
             StandardOpenOption.CREATE, StandardOpenOption.APPEND);
       } catch (IOException e) {
         // swallow
@@ -313,7 +322,7 @@ public class AvroRowEncoderIterator implements SortedKeyValueIterator<Key, Value
       } while (rowValue == null);
 
       // null doesn't seem to be allowed for cf/cq...
-      topKey = new Key(currentRow, new Text("v"), new Text(""));
+      topKey = new Key(currentRow, keyCF, keyCQ);
       topValue = new Value(rowValue);
 
     } catch (Throwable e) {
