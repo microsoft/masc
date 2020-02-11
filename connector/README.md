@@ -11,7 +11,7 @@ This code provides connectivity between Apache Accumulo and Apache Spark.
 - Enable use of Machine Learning with Accumulo as the datastore
 
 ## Examples
-```
+```python
 # Read from Accumulo
 df = (spark
       .read
