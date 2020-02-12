@@ -22,7 +22,7 @@ df = (spark
 # Write to Accumulo
 (df
  .write
- .format("org.apache.accumulo")
+ .format("com.microsoft.accumulo")
  .options(**options)
  .save())
 ```
