@@ -29,6 +29,8 @@ df = (spark
 
 See Pyspark [notebook](examples/AccumuloSparkConnector.ipynb) for a more detailed example.
 
+See Scala benchmark [notebook](examples/AccumuloSparkConnectorBenchmark.ipynb) for details on how our evaluation.
+
 ## Capabilities
 - Native Spark [Datasource V2](http://shzhangji.com/blog/2018/12/08/spark-datasource-api-v2/) API
 - Row serialization using [Avro](https://avro.apache.org/)
